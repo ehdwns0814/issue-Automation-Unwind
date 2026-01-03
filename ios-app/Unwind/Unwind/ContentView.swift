@@ -11,6 +11,7 @@ struct ContentView: View {
     @StateObject private var repository = ScheduleRepository.shared
     @StateObject private var homeViewModel = HomeViewModel()
     @StateObject private var focusManager = FocusManager.shared
+    @StateObject private var screentimeManager = ScreentimeManager.shared
     @State private var showingAddSheet = false
     @State private var editingSchedule: Schedule?
     @State private var scheduleToDelete: Schedule?
@@ -102,6 +103,9 @@ struct ContentView: View {
                 }
             } message: {
                 Text("이 스케줄을 정말 삭제하시겠습니까?")
+            }
+            .fullScreenCover(isPresented: .constant(screentimeManager.authorizationStatus == .denied)) {
+                PermissionRequestView()
             }
         }
     }
