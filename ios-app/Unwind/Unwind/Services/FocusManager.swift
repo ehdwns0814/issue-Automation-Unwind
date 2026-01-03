@@ -62,10 +62,27 @@ class FocusManager: ObservableObject {
     
     private func completeFocus() {
         guard var schedule = currentSchedule else { return }
+        schedule.status = .completed
         schedule.isCompleted = true
         schedule.updatedAt = Date()
+        schedule.completedAt = Date()
         ScheduleRepository.shared.updateSchedule(schedule)
         
+        stopFocus()
+    }
+    
+    /// 사용자가 수동으로 집중을 중단했을 때 호출됩니다.
+    func abandonFocus() {
+        guard var schedule = currentSchedule else { return }
+        
+        // 1. 상태 업데이트 (실패로 기록)
+        schedule.status = .failed
+        schedule.isCompleted = false
+        schedule.updatedAt = Date()
+        schedule.completedAt = Date()
+        ScheduleRepository.shared.updateSchedule(schedule)
+        
+        // 2. 집중 종료 처리 (타이머 중지, Shield 해제, 모니터링 중지)
         stopFocus()
     }
     

@@ -3,6 +3,7 @@ import SwiftUI
 struct TimerView: View {
     @StateObject private var focusManager = FocusManager.shared
     @Environment(\.dismiss) private var dismiss
+    @State private var showingAbandonAlert = false
     
     var body: some View {
         VStack(spacing: 40) {
@@ -32,8 +33,7 @@ struct TimerView: View {
                     .foregroundColor(.secondary)
                 
                 Button(role: .destructive) {
-                    focusManager.stopFocus()
-                    dismiss()
+                    showingAbandonAlert = true
                 } label: {
                     Text("포기하기")
                         .fontWeight(.semibold)
@@ -50,6 +50,14 @@ struct TimerView: View {
             if !isFocusing {
                 dismiss()
             }
+        }
+        .alert("정말 포기하시겠습니까?", isPresented: $showingAbandonAlert) {
+            Button("계속 집중하기", role: .cancel) { }
+            Button("포기하기", role: .destructive) {
+                focusManager.abandonFocus()
+            }
+        } message: {
+            Text("이번 집중은 실패로 기록됩니다.")
         }
     }
     
@@ -68,4 +76,3 @@ struct TimerView: View {
 #Preview {
     TimerView()
 }
-
