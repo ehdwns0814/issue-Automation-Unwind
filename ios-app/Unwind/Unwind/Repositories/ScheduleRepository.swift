@@ -34,6 +34,14 @@ class ScheduleRepository: ObservableObject {
         saveToDisk()
     }
     
+    /// 기존 스케줄을 수정합니다.
+    func updateSchedule(_ schedule: Schedule) {
+        if let index = schedules.firstIndex(where: { $0.id == schedule.id }) {
+            schedules[index] = schedule
+            saveToDisk()
+        }
+    }
+    
     /// 변경된 스케줄 목록을 디스크에 영구 저장합니다.
     private func saveToDisk() {
         do {

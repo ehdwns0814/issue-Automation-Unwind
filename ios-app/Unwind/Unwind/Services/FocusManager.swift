@@ -97,9 +97,9 @@ class FocusManager: ObservableObject {
         schedule.isCompleted = true
         schedule.isRunning = false
         
-        // Repository를 통해 상태 업데이트 (여기선 간단히 stop만 호출)
-        stopFocus()
+        // Repository를 통해 상태 업데이트
+        ScheduleRepository.shared.updateSchedule(schedule)
         
-        // TODO: Repository.updateSchedule(schedule) 호출 필요
+        stopFocus()
     }
 }

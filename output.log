@@ -1,0 +1,2084 @@
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-001: 스케줄 생성 UI 및 로컬 저장 로직 (iOS) --body # REQ-FUNC-001: 스케줄 생성 UI 및 로컬 저장 로직 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 사용자가 새로운 집중 스케줄을 생성하여 로컬에 저장한다.
+- **요약**: 메인 화면의 "+" 버튼을 통해 스케줄 생성 모달을 띄우고, 이름과 집중 시간을 입력받아 `UserDefaults`에 저장한다. API 연동은 추후 진행하므로, 동기화 상태는 `Pending`으로 설정한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-001
+- **Component**: iOS App (AddScheduleView, ScheduleRepository)
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 입력 (Input)
+- **UI Component**: `AddScheduleView` (Sheet 형태)
+- **Fields**:
+  - `name`: String (필수, max 100)
+  - `duration`: Int (필수, 분 단위 입력 -> 내부적으로 초 단위 저장)
+  - `date`: Date (기본값 Today)
+
+### 3.2 처리 (Process)
+- **Validation**:
+  - 이름: 빈 문자열 불가
+  - 시간: 0분 초과
+- **Persistence (Local)**:
+  - `Schedule` 모델 생성 (UUID 발급)
+  - `UserDefaults` 배열에 저장 (Optimistic Update)
+  - `syncStatus` = `.pending` 초기화
+
+### 3.3 출력 (Output)
+- **Success**: 모달 닫힘, 메인 리스트에 새 항목 즉시 추가
+- **Failure**: 입력값 검증 실패 시 오류 메시지 표시
+
+## 4. Definition of Done (DoD)
+> SRS의 Acceptance Criteria를 기반으로 한 완료 조건입니다.
+
+- [ ] **UI**: "+" 버튼 탭 시 모달이 부드럽게 열려야 한다.
+- [ ] **Validation**: 이름 누락 또는 시간이 0일 경우 "입력 오류" 알림이 떠야 한다.
+- [ ] **Persistence**: 앱을 껐다 켜도 생성한 스케줄이 리스트에 남아 있어야 한다.
+- [ ] **Data Integrity**: 저장된 데이터의 `syncStatus`는 반드시 `.pending` 이어야 한다.
+- [ ] **Performance**: 저장 버튼 탭 후 0.5초 이내에 리스트에 반영되고 모달이 닫혀야 한다.
+
+## 5. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-001-iOS"
+title: "스케줄 생성 UI 및 로컬 저장 구현"
+type: "functional"
+epic: "EPIC_SCHEDULE_MGMT"
+req_ids: ["REQ-FUNC-001"]
+component: ["ios-app", "ui", "local-db"]
+
+inputs:
+  fields:
+    - { name: "name", type: "String", validation: "required" }
+    - { name: "duration", type: "Int", validation: "min:1" }
+
+outputs:
+  success: { ui: "List Updated", data: "Saved to UserDefaults" }
+
+steps_hint:
+  - "Schedule 모델 구조체 정의 (Codable, Identifiable)"
+  - "ScheduleRepository (UserDefaults Manager) 구현"
+  - "AddScheduleView (SwiftUI) 구현"
+  - "ViewModel 연결 및 입력 검증 로직 작성"
+
+preconditions:
+  - "Xcode 프로젝트 생성 완료"
+
+postconditions:
+  - "앱 재실행 후에도 생성한 스케줄이 유지되어야 함"
+
+tests:
+  unit: ["ViewModel Validation Test", "Repository Save Test"]
+  ui: ["Add Schedule Flow"]
+
+dependencies: []
+estimated_effort: "M"
+start_date: "2026-01-03"
+due_date: "2026-01-04"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_SCHEDULE_MGMT,local-db,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-001-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-013: 모든 스케줄 완료 시 자동 해제 로직 (iOS) --body # REQ-FUNC-013: 모든 스케줄 완료 시 자동 해제 로직 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 올인 모드의 목표 달성을 축하하고 자유를 돌려준다.
+- **요약**: 진행률 검사에서 `완료 == 전체`가 되면 즉시 `AllInModeManager`가 차단을 해제하고 올인 모드를 종료한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-013
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Trigger**: `toggleCompletion` 내부에서 완료 조건 달성 시 호출.
+- **Action**:
+  - `stopMonitoring()`
+  - `isAllInModeActive = false`
+- **UI**:
+  - "오늘의 목표를 모두 달성하셨습니다!" 축하 팝업.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-013-iOS"
+title: "올인 모드 완료 및 자동 차단 해제"
+type: "functional"
+epic: "EPIC_ALLIN_MODE"
+req_ids: ["REQ-FUNC-013"]
+component: ["ios-app", "logic"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Congratulation Popup", system: "Unblocked" }
+
+steps_hint:
+  - "AllInModeManager: checkAllCompleted() 구현"
+  - "Completion Handler 연결"
+
+preconditions:
+  - "REQ-FUNC-011-iOS 구현 완료"
+
+postconditions:
+  - "마지막 항목 체크 시 즉시 차단이 풀려야 함"
+
+tests:
+  unit: ["Completion Condition Logic"]
+  manual: ["전체 완료 시나리오"]
+
+dependencies: ["REQ-FUNC-011-iOS"]
+estimated_effort: "S"
+start_date: "2026-01-20"
+due_date: "2026-01-20"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,EPIC_ALLIN_MODE,logic,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-013-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-011: 올인 모드 진행률(Progress) 관리 (iOS) --body # REQ-FUNC-011: 올인 모드 진행률(Progress) 관리 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 올인 모드 중 사용자가 스케줄을 하나씩 클리어하는 경험을 제공한다.
+- **요약**: 사용자가 스케줄 목록에서 "완료" 체크를 할 때마다 진행률(n/m)을 업데이트하고, 남아있는 스케줄이 있는지 확인한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-011
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Interaction**: 리스트 아이템의 체크박스 탭 -> `isCompleted` 토글.
+- **Check**: 모든 스케줄이 완료되었는지(`completedCount == totalCount`) 검사.
+- **UI**: Progress Bar 또는 "3/5 완료" 텍스트 업데이트.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-011-iOS"
+title: "올인 모드 스케줄 완료 체크 및 진행률"
+type: "functional"
+epic: "EPIC_ALLIN_MODE"
+req_ids: ["REQ-FUNC-011"]
+component: ["ios-app", "ui"]
+
+inputs:
+  fields:
+    - { name: "scheduleId", type: "UUID" }
+
+outputs:
+  success: { ui: "Progress Updated" }
+
+steps_hint:
+  - "ViewModel: toggleCompletion() 메서드 구현"
+  - "UI: Checkbox Component 구현"
+  - "AllInModeManager: 진행률 계산 로직"
+
+preconditions:
+  - "REQ-FUNC-010-iOS 구현 완료"
+
+postconditions:
+  - "체크 시 진행률이 즉시 반영되어야 함"
+
+tests:
+  unit: ["Progress Calculation"]
+  ui: ["Check/Uncheck Interaction"]
+
+dependencies: ["REQ-FUNC-010-iOS"]
+estimated_effort: "S"
+start_date: "2026-01-17"
+due_date: "2026-01-17"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_ALLIN_MODE,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-011-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-003: 날짜 탭 내비게이션 (iOS) --body # REQ-FUNC-003: 날짜 탭 내비게이션 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 사용자가 오늘 외의 다른 날짜(과거/미래)의 스케줄을 관리할 수 있게 한다.
+- **요약**: 메인 화면 상단에 7일간의 날짜 탭(좌우 스와이프)을 제공하고, 선택 시 해당 날짜의 스케줄 목록을 불러온다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-003
+- **Component**: iOS App (HomeView)
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **UI**: 오늘을 기준으로 `[-3, +3]`일 또는 주간 캘린더 뷰 제공.
+- **Interaction**: 날짜 선택 시 `ViewModel.selectedDate` 변경 및 데이터 리로드.
+- **Data**: `Repository.getSchedules(for: Date)` 호출.
+
+### 3.2 설정
+- 표시 범위: 기본적으로 "오늘"이 중심, 필요 시 무한 스크롤 또는 달력 모달 확장 가능.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-003-iOS"
+title: "날짜 선택 및 스케줄 목록 필터링"
+type: "functional"
+epic: "EPIC_SCHEDULE_MGMT"
+req_ids: ["REQ-FUNC-003"]
+component: ["ios-app", "ui"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Date Tabs & Filtered List" }
+
+steps_hint:
+  - "DateHelper 유틸리티 (날짜 생성/포맷팅) 구현"
+  - "UI: DateStripView (Horizontal Scroll) 구현"
+  - "ViewModel: selectedDate 상태 관리 및 필터링 로직"
+
+preconditions:
+  - "REQ-FUNC-001-iOS 구현 완료"
+
+postconditions:
+  - "날짜 변경 시 해당 일자의 데이터만 표시되어야 함"
+
+tests:
+  unit: ["Date Filtering Logic Test"]
+  ui: ["Swipe/Tap Date -> List Refresh"]
+
+dependencies: ["REQ-FUNC-001-iOS"]
+estimated_effort: "S"
+start_date: "2026-01-05"
+due_date: "2026-01-05"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_SCHEDULE_MGMT,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-003-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-023: 세션 중단 복구 로직 (iOS) --body # REQ-FUNC-023: 세션 중단 복구 로직 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 앱이 비정상 종료(크래시, 배터리 등)된 후 재실행되었을 때 상태를 복구한다.
+- **요약**: 앱 시작 시 `UserDefaults`에 저장된 `activeScheduleId`가 있다면, 남은 시간을 계산하여 타이머를 재개하거나 만료되었다면 완료 처리한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-023
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Launch**: `didFinishLaunching`에서 실행 중이던 스케줄 확인.
+- **Logic**:
+  - `Now > startTime + duration`: 이미 끝남 -> 완료 처리 화면 이동.
+  - `Now < startTime + duration`: 아직 남음 -> 남은 시간 타이머 재시작.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-023-iOS"
+title: "앱 재실행 시 세션 복구(Recovery)"
+type: "functional"
+epic: "EPIC_EXCEPTION"
+req_ids: ["REQ-FUNC-023"]
+component: ["ios-app", "logic"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { system: "Timer Resumed or Completed" }
+
+steps_hint:
+  - "SessionManager: restoreSession() 구현"
+  - "AppLifecycle 핸들링"
+
+preconditions:
+  - "REQ-FUNC-006-iOS 구현 완료"
+
+postconditions:
+  - "크래시 후 재실행 시 차단이 유지되거나 결과가 나와야 함"
+
+tests:
+  manual: ["실행 중 강제 종료 후 재실행"]
+
+dependencies: ["REQ-FUNC-006-iOS"]
+estimated_effort: "M"
+priority: "Could"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,logic,EPIC_EXCEPTION,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-023-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-019: 스트릭 계산 및 UI 표시 (iOS) --body # REQ-FUNC-019: 스트릭 계산 및 UI 표시 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 사용자의 지속적인 참여를 유도한다.
+- **요약**: 최근 며칠 연속으로 성공(`success`)했는지 계산하여 메인 화면 상단에 "🔥 5일 연속" 배지를 표시한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-019
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Calculation**: 어제부터 역순으로 탐색하며 `status == .success`인 날짜 카운트. (계획 없는 날은 스킵할지 정책 결정 필요 -> SRS상 유지)
+- **UI**: 메인 헤더에 아이콘과 숫자 표시.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-019-iOS"
+title: "스트릭(Streak) 계산 및 표시"
+type: "functional"
+epic: "EPIC_STATS"
+req_ids: ["REQ-FUNC-019"]
+component: ["ios-app", "ui", "logic"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Streak Badge Displayed" }
+
+steps_hint:
+  - "StreakCalculator 클래스 구현"
+  - "UI: HomeHeaderView 구현"
+
+preconditions:
+  - "REQ-FUNC-001-iOS 구현 완료 (데이터 누적 필요)"
+
+postconditions:
+  - "날짜가 바뀌고 성공 시 스트릭이 증가해야 함"
+
+tests:
+  unit: ["Streak Calculation Logic"]
+
+dependencies: ["REQ-FUNC-001-iOS"]
+estimated_effort: "S"
+start_date: "2026-01-24"
+due_date: "2026-01-24"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_STATS,logic,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-019-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-007: ShieldConfigurationExtension 구현 (iOS) --body # REQ-FUNC-007: ShieldConfigurationExtension 구현 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 차단된 앱 실행 시 사용자에게 동기를 부여하거나 현재 상황을 안내하는 커스텀 화면을 제공한다.
+- **요약**: `ShieldConfigurationDataSource`를 구현하여 차단 화면의 아이콘, 문구, 배경색 등을 커스터마이징한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-007
+- **Component**: iOS App Extension (ShieldConfiguration)
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **DataSource**: `ShieldConfigurationExtension` 타겟 생성.
+- **Config**: 현재 실행 중인 스케줄 이름 및 남은 시간(가능하다면) 표시.
+  *(iOS 제약상 Shield 내에서 실시간 타이머는 어려울 수 있으므로 정적 멘트 위주 구성)*
+- **UI**: 친근하지만 단호한 톤의 메시지 ("지금은 집중할 시간이에요!").
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-007-iOS"
+title: "앱 차단 화면 (Shield) 커스터마이징"
+type: "functional"
+epic: "EPIC_FOCUS_MODE"
+req_ids: ["REQ-FUNC-007"]
+component: ["ios-app", "screentime"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Custom Shield Displayed" }
+
+steps_hint:
+  - "ShieldConfigurationExtension 타겟 추가"
+  - "ShieldConfigurationDataSource 프로토콜 구현"
+  - "메시지 및 디자인 Asset 적용"
+
+preconditions:
+  - "REQ-FUNC-006-iOS (차단 로직) 구현 중"
+
+postconditions:
+  - "차단 앱 실행 시 기본 시스템 화면 대신 커스텀 화면이 떠야 함"
+
+tests:
+  manual: ["실기기 테스트"]
+
+dependencies: ["REQ-FUNC-006-iOS"]
+estimated_effort: "M"
+start_date: "2026-01-11"
+due_date: "2026-01-12"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,screentime,EPIC_FOCUS_MODE,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-007-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-015: 차단 대상 앱/웹사이트 선택 UI (iOS) --body # REQ-FUNC-015: 차단 대상 앱/웹사이트 선택 UI (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 사용자가 집중 시 차단할 방해 요소들을 직접 고를 수 않게 한다.
+- **요약**: `FamilyActivityPicker`를 호출하여 앱, 카테고리, 웹사이트를 선택하고 선택된 토큰을 `UserDefaults`에 저장한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-015
+- **Component**: iOS App (FamilyControls)
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Picker**: `FamilyActivityPicker(selection: $model.selection)` 표시.
+- **Save**: 선택된 `FamilyActivitySelection` 객체를 인코딩하여 저장.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-015-iOS"
+title: "차단 앱 관리 (FamilyActivityPicker)"
+type: "functional"
+epic: "EPIC_SETTINGS"
+req_ids: ["REQ-FUNC-015"]
+component: ["ios-app", "ui", "screentime"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { data: "Selection Saved" }
+
+steps_hint:
+  - "ShieldSettingsViewModel 구현 (Selection 상태 관리)"
+  - "ShieldSettingsView 구현 (Picker 호출)"
+  - "Selection Encoder/Decoder 구현 (UserDefaults 저장용)"
+
+preconditions:
+  - "FamilyControls 권한 획득 상태"
+
+postconditions:
+  - "선택한 앱들이 차단 로직(REQ-FUNC-006)에 반영되어야 함"
+
+tests:
+  manual: ["Picker 열기 및 선택 저장 테스트"]
+
+dependencies: []
+estimated_effort: "M"
+start_date: "2026-01-09"
+due_date: "2026-01-10"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label EPIC_SETTINGS,ios-app,ui,screentime,Issue-Automation,Functional
+Error: could not add label: 'EPIC_SETTINGS' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-015-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-021: 저장 실패 시 재시도 UI 구현 (iOS) --body # REQ-FUNC-021: 저장 실패 시 재시도 UI 구현 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 데이터 유실을 방지하고 사용자에게 인지시킨다.
+- **요약**: 로컬 저장이 실패(디스크 풀 등)하거나 동기화 오류 시 Alert을 띄워 "재시도" 할 수 있게 한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-021
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Catch**: `Repository.save()` throws catch 블록.
+- **UI**: `.alert("저장 실패", isPresented: ...)` 표시.
+- **Retry**: 사용자가 재시도 누르면 다시 `save()` 호출.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-021-iOS"
+title: "예외 처리: 저장 실패 및 재시도 UI"
+type: "functional"
+epic: "EPIC_EXCEPTION"
+req_ids: ["REQ-FUNC-021"]
+component: ["ios-app", "ui"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Error Alert" }
+
+steps_hint:
+  - "ErrorHandler 유틸리티 구현"
+  - "View Modifier: .withErrorHandling()"
+
+preconditions: []
+
+postconditions: []
+
+tests:
+  manual: ["강제 에러 발생 시나리오"]
+
+dependencies: []
+estimated_effort: "XS"
+priority: "Could"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_EXCEPTION,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-021-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-017: 권한 해제 감지 및 사유 입력 강제 (iOS) --body # REQ-FUNC-017: 권한 해제 감지 및 사유 입력 강제 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 사용자가 차단을 우회하기 위해 권한을 끄는 행위를 억제하고 패널티를 부여한다.
+- **요약**: 앱 진입 시 `AuthorizationCenter.shared.authorizationStatus`를 확인하고, 권한이 해제되었다면 "사유 입력" 모달을 강제로 띄운다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-017
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Check**: `SceneDelegate` 또는 `App` 최상위에서 `sceneDidBecomeActive` 시 권한 체크.
+- **Revoked**: 집중 모드 중이었는데 권한이 `.denied` 또는 `.notDetermined`라면 우회로 판단.
+- **Action**: `UserDefaults`에 `isPenaltyActive = true` 저장 후 모달 띄움.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-017-iOS"
+title: "권한 해제 감지 및 강제 모달"
+type: "functional"
+epic: "EPIC_PENALTY"
+req_ids: ["REQ-FUNC-017"]
+component: ["ios-app", "screentime", "ui"]
+
+inputs:
+  fields:
+    - { name: "reason", type: "String", validation: "required, min:10" }
+
+outputs:
+  success: { ui: "Penalty Modal", data: "Penalty Logged" }
+
+steps_hint:
+  - "PenaltyManager: 권한 체크 로직 구현"
+  - "PenaltyView: 사유 입력 UI (닫기 불가)"
+  - "AppLifecycle 연결"
+
+preconditions:
+  - "REQ-FUNC-006-iOS 구현 완료"
+
+postconditions:
+  - "권한 해제 시 다른 화면으로 이동이 불가능해야 함"
+
+tests:
+  manual: ["설정에서 권한 끄고 앱 진입 테스트"]
+
+dependencies: ["REQ-FUNC-006-iOS"]
+estimated_effort: "M"
+start_date: "2026-01-27"
+due_date: "2026-01-28"
+priority: "Should"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,EPIC_PENALTY,ui,screentime,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-017-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-009: 타이머 종료 시 자동 성공 처리 (iOS) --body # REQ-FUNC-009: 타이머 종료 시 자동 성공 처리 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 집중 시간 달성을 축하하고 기록한다.
+- **요약**: 타이머가 0이 되면 자동으로 차단을 해제하고, "성공" 화면을 띄운 뒤 스케줄을 완료 처리한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-009
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Timer End**:
+  - 차단 해제 (`stopMonitoring`).
+  - 로컬 DB 업데이트: `isCompleted = true`, `completedAt = Now`.
+- **UI**:
+  - Confetti(꽃가루) 효과 등 축하 UI 표시.
+  - "완료" 버튼 누르면 홈으로 복귀.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-009-iOS"
+title: "타이머 종료 및 성공 처리"
+type: "functional"
+epic: "EPIC_FOCUS_MODE"
+req_ids: ["REQ-FUNC-009"]
+component: ["ios-app", "ui"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Success Screen", data: "Status Completed" }
+
+steps_hint:
+  - "FocusManager: Timer Completion Handler 구현"
+  - "UI: SuccessView 구현 (Animation)"
+  - "Repository: 완료 상태 저장"
+
+preconditions:
+  - "REQ-FUNC-006-iOS 구현 완료"
+
+postconditions:
+  - "성공 기록이 남고 리스트에서 완료 표시되어야 함"
+
+tests:
+  unit: ["Completion Logic"]
+  manual: ["타이머 1분 설정 후 완료 테스트"]
+
+dependencies: ["REQ-FUNC-006-iOS"]
+estimated_effort: "S"
+start_date: "2026-01-14"
+due_date: "2026-01-14"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_FOCUS_MODE,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-009-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-005: 스케줄 삭제 기능 (iOS) --body # REQ-FUNC-005: 스케줄 삭제 기능 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 불필요한 스케줄을 제거한다.
+- **요약**: Context Menu 또는 스와이프 액션을 통해삭제 요청을 하고, 사용자 확인 후 로컬 저장소에서 제거(Soft Delete 또는 Hard Delete)한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-005
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **UI**: 삭제 확인 Alert 표시 (실수 방지).
+- **Process**:
+  - 로컬 전용 데이터(`syncStatus == .pending`) -> Hard Delete (완전 삭제).
+  - 서버 동기화된 데이터(`syncStatus == .synced`) -> Soft Delete 마킹 (추후 서버 동기화 시 삭제 요청).
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-005-iOS"
+title: "스케줄 삭제 (로컬)"
+type: "functional"
+epic: "EPIC_SCHEDULE_MGMT"
+req_ids: ["REQ-FUNC-005"]
+component: ["ios-app", "ui", "local-db"]
+
+inputs:
+  fields:
+    - { name: "id", type: "UUID", validation: "required" }
+
+outputs:
+  success: { ui: "Item Removed from List" }
+
+steps_hint:
+  - "UI: Swipe to Delete & Alert 구현"
+  - "Repository: deleteSchedule() 로직 구현 (Sync 상태 따른 분기)"
+
+preconditions:
+  - "REQ-FUNC-001-iOS 구현 완료"
+
+postconditions:
+  - "삭제된 항목이 리스트에서 사라져야 함"
+
+tests:
+  unit: ["Delete Logic Test"]
+  ui: ["Delete Action & Cancel"]
+
+dependencies: ["REQ-FUNC-001-iOS"]
+estimated_effort: "S"
+start_date: "2026-01-23"
+due_date: "2026-01-23"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_SCHEDULE_MGMT,local-db,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-005-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-012: 올인 모드 전용 Shield UI 구성 (iOS) --body # REQ-FUNC-012: 올인 모드 전용 Shield UI 구성 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 사용자가 현재 올인 모드 중임을 인지하고, 얼마나 남았는지 Shield 화면에서 확인하게 한다.
+- **요약**: `ShieldConfigurationDataSource`에서 현재 모드가 "올인 모드"인지 확인하고, 그렇다면 "올인 모드 진행 중 (3/5)"와 같은 문구를 표시한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-012
+- **Component**: iOS App (ShieldExtension)
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Shared Storage**: Main App과 Extension 간 데이터 공유 (`App Group` 활용 필요).
+- **Display**: `UserDefaults(suiteName: ...)`에서 진행률 읽어와 Shield에 표시.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-012-iOS"
+title: "올인 모드 Shield UI (진행률 표시)"
+type: "functional"
+epic: "EPIC_ALLIN_MODE"
+req_ids: ["REQ-FUNC-012"]
+component: ["ios-app", "screentime"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Sield with Progress Info" }
+
+steps_hint:
+  - "App Group 설정 (Capabilities)"
+  - "SharedUserDefaultsManager 구현"
+  - "ShieldDataSource: 모드에 따른 분기 처리"
+
+preconditions:
+  - "REQ-FUNC-007-iOS (기본 Shield) 구현 완료"
+  - "REQ-FUNC-010-iOS (올인 모드) 구현 완료"
+
+postconditions:
+  - "올인 모드 중에는 차단 화면 멘트가 달라져야 함"
+
+tests:
+  manual: ["올인 모드 진입 후 차단 앱 실행 확인"]
+
+dependencies: ["REQ-FUNC-007-iOS", "REQ-FUNC-010-iOS"]
+estimated_effort: "M"
+start_date: "2026-01-18"
+due_date: "2026-01-19"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,EPIC_ALLIN_MODE,screentime,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-012-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-010: 올인 모드(All-in Mode) 진입 로직 (iOS) --body # REQ-FUNC-010: 올인 모드(All-in Mode) 진입 로직 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 하루 전체 스케줄을 완료할 때까지 쉬지 않고 달리는 강력한 모드를 제공한다.
+- **요약**: "올인 모드" 토글을 켜고 시작하면, 그날 예정된 모든 스케줄(`isCompleted == false`)이 완료될 때까지 앱 차단이 지속된다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-010
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Init**: 오늘 날짜의 미완료 스케줄 개수 확인. (0개면 시작 불가)
+- **Block**: `DeviceActivity`를 시작하되, 시간 제한 없는(또는 24시간) 모니터링 시작.
+- **State**: `UserDefaults`에 `isAllInModeActive = true` 저장.
+
+### 3.2 UI
+- 홈 화면 상단에 "올인 모드 진행 중" 배너 표시.
+- 일반 스케줄 실행 버튼 비활성화 (체크박스만 활성화).
+
+## 4. Definition of Done (DoD)
+> SRS의 Acceptance Criteria를 기반으로 한 완료 조건입니다.
+
+- [ ] **Validation**: 오늘 예정된 스케줄이 없거나 모두 완료된 상태라면 "올인 모드를 시작할 수 없습니다" 알림이 떠야 한다.
+- **Blocking**:
+  - [ ] 올인 모드 시작 시 즉시 차단이 시작되어야 한다.
+  - [ ] 일반 타이머와 달리 종료 시간이 정해져 있지 않아야 한다.
+- **Persistence**: 앱을 종료했다 다시 켜도 "올인 모드 진행 중" 상태가 유지되어야 한다.
+- **UI**: 메인 화면 상단에 현재 상태를 알리는 배너나 인디케이터가 표시되어야 한다.
+
+## 5. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-010-iOS"
+title: "올인 모드 진입 및 상태 관리"
+type: "functional"
+epic: "EPIC_ALLIN_MODE"
+req_ids: ["REQ-FUNC-010"]
+component: ["ios-app", "screentime"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "All-in Mode Started", system: "Continuous Block" }
+
+steps_hint:
+  - "AllInModeManager 클래스 구현 (Singleton)"
+  - "UI: 올인 모드 스위치 및 시작 버튼 구현"
+  - "ScreenTime: 무제한 차단 스케줄 설정"
+
+preconditions:
+  - "REQ-FUNC-001-iOS, 006-iOS 구현 완료"
+
+postconditions:
+  - "앱 차단이 즉시 시작되고, 앱을 껐다 켜도 유지되어야 함"
+
+tests:
+  manual: ["올인 모드 시작 시나리오"]
+
+dependencies: ["REQ-FUNC-006-iOS"]
+estimated_effort: "M"
+start_date: "2026-01-15"
+due_date: "2026-01-16"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,EPIC_ALLIN_MODE,screentime,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-010-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-002: 최근 항목 빠른 추가 (iOS) --body # REQ-FUNC-002: 최근 항목 빠른 추가 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 반복 입력 입력을 최소화하여 사용자 경험을 개선한다.
+- **요약**: 최근에 사용한 스케줄(이름/시간)을 칩(Chip) 형태로 제공하여, 원터치로 입력 필드를 채운다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-002
+- **Component**: iOS App (AddScheduleView)
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Query**: 로컬 저장소(`UserDefaults`)에서 `lastModified` 기준 내림차순 정렬 후, 중복된 이름/시간 조합 제거.
+- **Limit**: 상위 5개 항목 추출.
+- **UI**: `AddScheduleView` 상단에 가로 스크롤 가능한 칩 목록 표시.
+
+### 3.2 입력 (Interaction)
+- 사용자가 칩을 탭하면 `name`과 `duration` 필드에 값 자동 입력.
+
+### 3.3 예외 (Exceptions)
+- 저장된 스케줄이 없는 경우: 섹션 숨김 처리.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-002-iOS"
+title: "최근 사용 스케줄 빠른 추가 (Chips UI)"
+type: "functional"
+epic: "EPIC_SCHEDULE_MGMT"
+req_ids: ["REQ-FUNC-002"]
+component: ["ios-app", "ui"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Recent History Chips" }
+
+steps_hint:
+  - "Repository: getRecentSchedules() 메서드 구현 (Distinct 로직)"
+  - "UI: Horizontal ScrollView 및 Chip 컴포넌트 구현"
+  - "ViewModel: 칩 선택 시 Form 데이터 바인딩 로직"
+
+preconditions:
+  - "REQ-FUNC-001-iOS(저장소) 구현 완료"
+
+postconditions:
+  - "스케줄 생성 시마다 최근 목록이 갱신되어야 함"
+
+tests:
+  unit: ["Distinct Query Logic Test"]
+  ui: ["Chip Selection -> Input Field Fill"]
+
+dependencies: ["REQ-FUNC-001-iOS"]
+estimated_effort: "S"
+priority: "Should"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_SCHEDULE_MGMT,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-002-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-006: 개별 스케줄 실행 및 타이머/차단 로직 (iOS) --body # REQ-FUNC-006: 개별 스케줄 실행 및 타이머/차단 로직 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 설정한 시간 동안 실제 집중을 강제하기 위해 앱 차단을 수행한다.
+- **요약**: 스케줄을 실행하면 카운트다운 타이머가 시작되고, `ScreenTime API`를 통해 설정된 앱들의 접근을 차단한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-006
+- **Component**: iOS App (FamilyControls, DeviceActivity)
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Timer**: `Timer.publish` 또는 `DispatchSourceTimer` 사용하여 1초 단위 카운트다운.
+- **Block**:
+  - `FamilyControls.requestAuthorization()` (최초 1회).
+  - `DeviceActivityCenter.startMonitoring(...)` 호출하여 차단 활성화.
+  - `ManagedSettingsStore`를 통해 차단할 앱 목록(`shield.applicationCategories`) 적용.
+
+### 3.2 UI
+- 차단 중 화면(Timer View)으로 전환. "포기하기" 버튼 제공.
+
+## 4. Definition of Done (DoD)
+> SRS의 Acceptance Criteria를 기반으로 한 완료 조건입니다.
+
+- [ ] **Authorization**: 최초 실행 시 스크린타임 권한 요청 팝업이 떠야 한다.
+- **Blocking**:
+  - [ ] 시작 버튼을 누르면 즉시 지정된 앱(예: YouTube)의 아이콘이 흐려지거나 실행 시 차단 화면이 떠야 한다.
+  - [ ] 앱을 강제로 종료하고 다시 켜도 차단 상태가 유지되어야 한다.
+- **Timer**:
+  - [ ] 타이머가 1초 단위로 정확히 감소해야 한다.
+  - [ ] 백그라운드 진입 후 다시 돌아와도 시간이 정확히 동기화되어 있어야 한다.
+- **State**: 실행 중인 스케줄은 `isRunning` 상태여야 한다.
+
+## 5. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-006-iOS"
+title: "개별 스케줄 실행 및 앱 차단(ScreenTime) 연동"
+type: "functional"
+epic: "EPIC_FOCUS_MODE"
+req_ids: ["REQ-FUNC-006", "REQ-NF-001", "REQ-NF-003"]
+component: ["ios-app", "screentime", "timer"]
+
+inputs:
+  fields:
+    - { name: "schedule", type: "Schedule", validation: "required" }
+    - { name: "blockedApps", type: "FamilyActivitySelection" }
+
+outputs:
+  success: { ui: "Timer Running", system: "Apps Blocked" }
+
+steps_hint:
+  - "ScreenTime 권한 요청 로직 구현"
+  - "DeviceActivityMonitorExtension 타겟 생성 및 설정"
+  - "FocusManager (Timer + ScreenTime 제어) 클래스 구현"
+  - "TimerView UI 구현"
+
+preconditions:
+  - "Apple Developer Account (FamilyControls 권한 필요)"
+  - "REQ-FUNC-015-iOS (차단 앱 선택) 선행 권장 (없으면 전체 차단 테스트)"
+
+postconditions:
+  - "실행 시 지정된 앱이 실행되지 않고 Shield가 떠야 함"
+
+tests:
+  unit: ["Timer Logic"]
+  manual: ["실기기에서 차단 동작 확인"]
+
+dependencies: ["REQ-FUNC-001-iOS"]
+estimated_effort: "L"
+start_date: "2026-01-06"
+due_date: "2026-01-08"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,screentime,EPIC_FOCUS_MODE,Issue-Automation,Functional,timer
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-006-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-018: 패널티 적용 및 스트릭 리셋 로직 (iOS) --body # REQ-FUNC-018: 패널티 적용 및 스트릭 리셋 로직 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 권한 해제 우회 시 달성 기록을 무효화하여 공정한 도전 환경을 만든다.
+- **요약**: 사유를 입력하고 제출하면 해당 일자의 `status`를 `Failure`로 변경하고, 현재까지의 스트릭(Streak)을 0으로 초기화한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-018
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Update**: `repository.updateDailyStatus(.failure)`.
+- **Reset**: `UserDefaults.currentStreak = 0`.
+- **Log**: 입력된 사유를 로컬 로그(또는 추후 서버)에 저장.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-018-iOS"
+title: "패널티 적용 (실패 처리 및 스트릭 초기화)"
+type: "functional"
+epic: "EPIC_PENALTY"
+req_ids: ["REQ-FUNC-018"]
+component: ["ios-app", "logic"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { data: "Streak Reset, Daily Failed" }
+
+steps_hint:
+  - "StreakManager: resetStreak() 메서드 구현"
+  - "Repository: Penalty 적용 로직"
+
+preconditions:
+  - "REQ-FUNC-017-iOS 구현 완료"
+
+postconditions:
+  - "메인 화면에서 스트릭이 깨진 것으로 보여야 함"
+
+tests:
+  unit: ["Streak Reset Logic"]
+
+dependencies: ["REQ-FUNC-017-iOS"]
+estimated_effort: "S"
+start_date: "2026-01-29"
+due_date: "2026-01-29"
+priority: "Should"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,EPIC_PENALTY,logic,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-018-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-014: 올인 모드 수동 포기 및 실패 처리 (iOS) --body # REQ-FUNC-014: 올인 모드 수동 포기 및 실패 처리 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 사용자가 도저히 지속할 수 없을 때 중단할 수 있게 하되, 실패 기록을 남긴다.
+- **요약**: "올인 모드 중단" 버튼 -> 강력한 경고 팝업 -> 확인 시 차단 해제 및 `DailyRecord`에 실패(`Failure`) 기록.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-014
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Warning**: "중단하면 오늘은 실패로 기록됩니다." 경고.
+- **Action**: 차단 해제, `Database`에 오늘 날짜 `status = .failure` 저장.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-014-iOS"
+title: "올인 모드 수동 포기"
+type: "functional"
+epic: "EPIC_ALLIN_MODE"
+req_ids: ["REQ-FUNC-014"]
+component: ["ios-app", "ui"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { data: "Daily Status Failed", system: "Unblocked" }
+
+steps_hint:
+  - "UI: Give Up Button & Alert"
+  - "Repository: updateDailyStatus(.failure)"
+
+preconditions:
+  - "REQ-FUNC-010-iOS 구현 완료"
+
+postconditions:
+  - "포기 후 재진입 시 실패 상태가 유지되어야 함"
+
+tests:
+  manual: ["포기 프로세스 확인"]
+
+dependencies: ["REQ-FUNC-010-iOS"]
+estimated_effort: "S"
+start_date: "2026-01-21"
+due_date: "2026-01-21"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_ALLIN_MODE,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-014-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-022: 권한 거부 대응 안내 UI (iOS) --body # REQ-FUNC-022: 권한 거부 대응 안내 UI (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 앱의 핵심 기능인 차단을 사용하기 위해 필수 권한을 유도한다.
+- **요약**: `AuthorizationStatus == .denied` 일 때, 메인 화면을 가리고 "설정으로 이동하여 권한을 허용해주세요" 안내 뷰를 표시한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-022
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Check**: `DeviceActivityCenter` 권한 확인.
+- **UI**: PermissionRequestView (FullScreenCover).
+- **Link**: `UIApplication.openSettingsURLString` 이동 버튼.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-022-iOS"
+title: "권한 거부 시 안내 화면(Empty State)"
+type: "functional"
+epic: "EPIC_EXCEPTION"
+req_ids: ["REQ-FUNC-022"]
+component: ["ios-app", "ui"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Permission Request View" }
+
+steps_hint:
+  - "PermissionManager 구현"
+  - "UI: PermissionView 구현"
+
+preconditions: []
+
+postconditions:
+  - "권한 허용 전까지는 메인 기능 사용 불가해야 함"
+
+tests:
+  manual: ["권한 거부 상태 테스트"]
+
+dependencies: []
+estimated_effort: "S"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_EXCEPTION,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-022-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-030: 다국어 지원 리소스 관리 (iOS) --body # REQ-FUNC-030: 다국어 지원 리소스 관리 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 글로벌 확장을 고려한다.
+- **요약**: 모든 UI 텍스트를 `Localizable.strings`로 관리한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-030 (SRS 번호 할당은 없었으나 다국어는 기본 요건) -> *SRS REQ-NF-011 등과 연계* (실제 SRS에는 030이 통계 전송이나, 편의상 다국어로 매핑) -> **수정: SRS 030은 강제 종료 카운트임. 이 파일은 NFR로 빼는 게 맞으나 iOS 공통으로 생성.** (파일명: REQ-NF-COMMON-iOS.md로 대체하거나, 우선 030이 강제 종료 백엔드이므로 iOS 대응 코드로 간주)
+
+*Note: SRS REQ-FUNC-030은 "앱 강제 종료 횟수 카운트"이므로, 위 029/030 Backend Task에 병합됨. 여기서는 iOS 클라이언트 측 감지 로직을 기술.*
+
+## 1. 목적 및 요약 (Revisied)
+- **목적**: 사용자가 앱을 강제로 껐을 때 이를 감지하여 서버에 보고한다.
+- **요약**: `applicationWillTerminate` 또는 `SceneDelegate`의 연결 끊김, 그리고 다음 실행 시 비정상 종료 여부를 판단하여 서버로 전송한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-030
+- **Component**: iOS App
+
+## 3. Sub-Tasks
+- **Detect**: 집중 세션 중이었는데 앱이 종료됨 -> 플래그 저장.
+- **Report**: 재실행 시 플래그 확인 -> `POST /api/stats/force-quit`.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-030-iOS"
+title: "앱 강제 종료 감지 및 리포팅"
+type: "functional"
+epic: "EPIC_STATS"
+req_ids: ["REQ-FUNC-030"]
+component: ["ios-app", "logic"]
+
+inputs: []
+outputs:
+  success: { data: "Report Sent" }
+
+steps_hint:
+  - "AppLifecycleObserver 구현"
+  - "Launch 시 비정상 종료 체크 로직"
+
+preconditions: []
+
+postconditions: []
+
+tests:
+  manual: ["강제 종료 후 재실행 시 로그 확인"]
+
+dependencies: ["REQ-FUNC-006-iOS"]
+estimated_effort: "S"
+priority: "Should"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,EPIC_STATS,logic,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-030-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-008: 개별 스케줄 수동 중단 처리 (iOS) --body # REQ-FUNC-008: 개별 스케줄 수동 중단 처리 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 급한 사유로 집중을 중단해야 할 때를 위한 탈출구를 제공한다.
+- **요약**: 타이머 화면에서 "포기하기" 버튼을 누르면 경고 팝업 후 차단을 즉시 해제하고, 해당 스케줄을 `Fail` 상태로 기록한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-008
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Stop**:
+  - `DeviceActivityCenter.stopMonitoring()` 호출.
+  - `ManagedSettingsStore.clearAllSettings()` 호출하여 차단 해제.
+- **Record**:
+  - 현재 스케줄 상태를 `Incomplete` 또는 `Failed`로 업데이트.
+  - 중단 시각 기록.
+
+### 3.2 UI
+- "정말 포기하시겠습니까? 이번 집중은 실패로 기록됩니다." Alert 표시.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-008-iOS"
+title: "스케줄 수동 포기 및 차단 해제"
+type: "functional"
+epic: "EPIC_FOCUS_MODE"
+req_ids: ["REQ-FUNC-008"]
+component: ["ios-app", "screentime"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Block Cleared", data: "Status Failed" }
+
+steps_hint:
+  - "FocusManager: stopSession() 메서드 구현"
+  - "UI: Alert Action 핸들링"
+  - "Repository: 상태 업데이트 로직"
+
+preconditions:
+  - "REQ-FUNC-006-iOS 구현 완료"
+
+postconditions:
+  - "차단이 즉시 풀리고 메인 화면으로 돌아가야 함"
+
+tests:
+  manual: ["포기 시나리오 테스트"]
+
+dependencies: ["REQ-FUNC-006-iOS"]
+estimated_effort: "S"
+start_date: "2026-01-13"
+due_date: "2026-01-13"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,screentime,EPIC_FOCUS_MODE,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-008-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-016: 앱 버전 정보 표시 (iOS) --body # REQ-FUNC-016: 앱 버전 정보 표시 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 사용자가 현재 설치된 앱 버전을 확인할 수 있게 한다.
+- **요약**: 설정 화면 하단에 `Bundle.main.infoDictionary` 정보를 읽어 표시한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-016
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Read**: `CFBundleShortVersionString` (버전), `CFBundleVersion` (빌드 번호).
+- **UI**: 텍스트 뷰 표시 (예: "v1.0.0 (Build 1)").
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-016-iOS"
+title: "앱 버전 정보 표시"
+type: "functional"
+epic: "EPIC_SETTINGS"
+req_ids: ["REQ-FUNC-016"]
+component: ["ios-app", "ui"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Version Text Displayed" }
+
+steps_hint:
+  - "AppInfoUtil 구현"
+  - "SettingsView 하단에 추가"
+
+preconditions: []
+
+postconditions: []
+
+tests:
+  unit: ["Version Reading Logic"]
+
+dependencies: []
+estimated_effort: "XS"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label EPIC_SETTINGS,ios-app,ui,Issue-Automation,Functional
+Error: could not add label: 'EPIC_SETTINGS' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-016-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-004: 스케줄 수정 기능 (iOS) --body # REQ-FUNC-004: 스케줄 수정 기능 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 기 생성된 스케줄의 정보를 수정할 수 있게 한다.
+- **요약**: 리스트 아이템 길게 누르기(Context Menu)를 통해 "수정"을 선택하면 모달을 띄워 내용을 변경하고 로컬 저장소를 업데이트한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-004
+- **Component**: iOS App
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Input**: 기존 데이터(`name`, `duration`)가 채워진 상태로 모달 오픈.
+- **Update**: 내용 변경 후 저장 시 `lastModified` 업데이트.
+- **Sync**: 변경된 데이터는 `syncStatus = .pending`으로 마킹 (추후 백엔드 전송).
+
+### 3.2 제약
+- 완료된 스케줄(`isCompleted = true`)은 수정 불가.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-004-iOS"
+title: "스케줄 수정 (로컬)"
+type: "functional"
+epic: "EPIC_SCHEDULE_MGMT"
+req_ids: ["REQ-FUNC-004"]
+component: ["ios-app", "ui", "local-db"]
+
+inputs:
+  fields:
+    - { name: "id", type: "UUID", validation: "required" }
+    - { name: "newName", type: "String" }
+
+outputs:
+  success: { ui: "List Updated", data: "UserDefaults Updated" }
+
+steps_hint:
+  - "UI: Context Menu (Long Press) 구현"
+  - "ViewModel: Edit Mode 상태 관리"
+  - "Repository: updateSchedule() 메서드 구현"
+
+preconditions:
+  - "REQ-FUNC-001-iOS 구현 완료"
+
+postconditions:
+  - "수정 내용이 즉시 리스트에 반영되어야 함"
+
+tests:
+  unit: ["Update Logic Test"]
+  ui: ["Edit Flow"]
+
+dependencies: ["REQ-FUNC-001-iOS"]
+estimated_effort: "S"
+start_date: "2026-01-22"
+due_date: "2026-01-22"
+priority: "Must"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_SCHEDULE_MGMT,local-db,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-004-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-020: 주간/월간 통계 그래프 구현 (iOS) --body # REQ-FUNC-020: 주간/월간 통계 그래프 구현 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 사용자의 성취도를 시각적으로 보여준다.
+- **요약**: `Charts` 프레임워크를 사용하여 지난 7일/30일간의 집중 시간 및 성공률을 막대/선 그래프로 표현한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-020
+- **Component**: iOS App (Swift Charts)
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Query**: `Repository.getDailyRecords(range: ...)` 호춮.
+- **Transform**: `[Date: Record]` -> `[ChartDataEntry]` 변환.
+- **UI**: 탭(주간/월간) 전환 시 그래프 애니메이션.
+
+## 4. Definition of Done (DoD)
+> SRS의 Acceptance Criteria를 기반으로 한 완료 조건입니다.
+
+- [ ] **Data Accuracy**: 지난 7일간의 집중 시간 합계가 DB에 저장된 실제 시간과 정확히 일치해야 한다.
+- **UI Interaction**:
+  - [ ] 주간/월간 탭 전환 시 그래프가 부드럽게 애니메이션되어야 한다.
+  - [ ] 데이터가 없는 날짜는 0으로 표시되어야 한다 (누락되지 않음).
+- **Visual**: X축(날짜)과 Y축(시간) 레이블이 가독성 있게 표시되어야 한다.
+
+## 5. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-020-iOS"
+title: "통계 그래프 (Charts) 구현"
+type: "functional"
+epic: "EPIC_STATS"
+req_ids: ["REQ-FUNC-020"]
+component: ["ios-app", "ui"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { ui: "Charts View Displayed" }
+
+steps_hint:
+  - "Swift Charts 라이브러리 활용"
+  - "StatsViewModel: 데이터 가공 로직"
+  - "StatsView UI 구현"
+
+preconditions:
+  - "REQ-FUNC-001-iOS 데이터 필요"
+
+postconditions: []
+
+tests:
+  ui: ["Chart Rendering Check"]
+
+dependencies: ["REQ-FUNC-001-iOS"]
+estimated_effort: "M"
+start_date: "2026-01-25"
+due_date: "2026-01-26"
+priority: "Should"
+agent_profile: ["ios-developer"]
+```
+ --label ios-app,ui,EPIC_STATS,Issue-Automation,Functional
+Error: could not add label: 'ios-app' not found
+
+Failed to create issue for tasks/functional/iOS/REQ-FUNC-020-iOS.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title TASK-API-024: 인증 시스템 API 인터페이스 설계 (Backend) --body # TASK-API-024: 인증 시스템 API 인터페이스 설계 (Backend)
+
+## 1. 목적 및 요약
+- **목적**: 회원가입, 로그인, 재발급에 필요한 API 스펙을 정의한다.
+- **요약**: `AuthController` 스텁 구현 및 DTO(`SignUpRequest`, `LoginRequest`, `TokenResponse`) 정의.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-024 (Interface Layer)
+- **Component**: Backend API
+
+## 3. Definition of Done (DoD)
+- [ ] **DTO**:
+  - `SignUpRequest`: 이메일 형식, 비번 길이 검증 포함.
+  - `TokenResponse`: accessToken, refreshToken 포함.
+- **Controller**: `/api/auth/*` 경로 매핑 확인.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "TASK-API-024"
+title: "인증 API 명세 (DTO/Controller)"
+type: "functional"
+epic: "EPIC_AUTH"
+req_ids: ["REQ-FUNC-024"]
+component: ["backend", "api"]
+
+inputs: []
+outputs:
+  success: { code: "Auth DTOs" }
+
+dependencies: []
+priority: "Must"
+start_date: "2026-01-31"
+due_date: "2026-01-31"
+agent_profile: ["backend-developer"]
+```
+ --label api,EPIC_AUTH,Issue-Automation,Functional,backend
+Error: could not add label: 'api' not found
+
+Failed to create issue for tasks/functional/Backend/TASK-API-024.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title TASK-API-001: 스케줄 생성 API 인터페이스 설계 (Backend) --body # TASK-API-001: 스케줄 생성 API 인터페이스 설계 (Backend)
+
+## 1. 목적 및 요약
+- **목적**: 클라이언트와 통신할 계약(Contract)을 정의한다.
+- **요약**: `POST /api/schedules` 엔드포인트에 대한 Request/Response DTO를 작성하고 Validation 어노테이션을 적용한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-001 (Interface Layer)
+- **Component**: Backend API (Web Layer)
+
+## 3. Definition of Done (DoD)
+- [ ] **DTO**: `CreateScheduleRequest`, `ScheduleResponse` 클래스 작성.
+- [ ] **Validation**: `@NotNull`, `@Min` 등 입력값 검증 어노테이션 적용.
+- **Controller**:
+  - [ ] 엔드포인트 껍데기(Stub) 구현.
+  - [ ] Swagger(@Operation) 문서화 어노테이션 적용.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "TASK-API-001"
+title: "스케줄 생성 API 명세 (DTO/Controller)"
+type: "functional"
+epic: "EPIC_SCHEDULE_MGMT"
+req_ids: ["REQ-FUNC-001"]
+component: ["backend", "api"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { code: "Compilable DTOs" }
+
+dependencies: []
+priority: "Must"
+start_date: "2026-02-06"
+due_date: "2026-02-06"
+agent_profile: ["backend-developer"]
+```
+ --label api,EPIC_SCHEDULE_MGMT,Issue-Automation,Functional,backend
+Error: could not add label: 'api' not found
+
+Failed to create issue for tasks/functional/Backend/TASK-API-001.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title TASK-DB-001: 스케줄 도메인 데이터 모델링 (Backend) --body # TASK-DB-001: 스케줄 도메인 데이터 모델링 (Backend)
+
+## 1. 목적 및 요약
+- **목적**: 스케줄 데이터를 영속적으로 저장하기 위한 DB 구조를 정의한다.
+- **요약**: `Schedule` 엔티티와 `User` 엔티티 간의 연관관계를 매핑하고, JPA Repository를 구현한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-001 (Data Layer)
+- **Component**: Backend DB (MySQL/JPA)
+
+## 3. Definition of Done (DoD)
+- [ ] **Schema**: `schedules` 테이블 생성 DDL이 작성되어야 한다. (인덱스 포함)
+- **Entity**:
+  - [ ] `id` (PK, Auto Inc), `clientId` (UUID, Unique), `name`, `duration` 필드 포함.
+  - [ ] `User`와 다대일(N:1) Lazy Loading 관계 설정.
+- **Repository**:
+  - [ ] `findByClientId` 등 기본 조회 메서드 작성.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "TASK-DB-001"
+title: "스케줄 데이터 모델링 (Entity/Repo)"
+type: "functional"
+epic: "EPIC_SCHEDULE_MGMT"
+req_ids: ["REQ-FUNC-001"]
+component: ["backend", "db"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { data: "Entity Mapped" }
+
+dependencies: ["TASK-DB-024"] # User Entity 선행 필요
+priority: "Must"
+start_date: "2026-02-05"
+due_date: "2026-02-05"
+agent_profile: ["backend-developer"]
+```
+ --label EPIC_SCHEDULE_MGMT,db,Issue-Automation,Functional,backend
+Error: could not add label: 'EPIC_SCHEDULE_MGMT' not found
+
+Failed to create issue for tasks/functional/Backend/TASK-DB-001.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title TASK-DB-024: 사용자 도메인 데이터 모델링 (Backend) --body # TASK-DB-024: 사용자 도메인 데이터 모델링 (Backend)
+
+## 1. 목적 및 요약
+- **목적**: 사용자 및 인증 정보를 저장하기 위한 DB 구조를 정의한다.
+- **요약**: `User` 엔티티와 `RefreshToken` 저장소(Redis 또는 DB)를 설계한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-024 (Data Layer)
+- **Component**: Backend DB
+
+## 3. Definition of Done (DoD)
+- [ ] **Schema**: `users` 테이블 생성 DDL. (email unique index 필수)
+- **Entity**:
+  - [ ] `email`, `passwordHash`, `role` 필드 포함.
+  - [ ] `BaseTimeEntity`(createdAt, updatedAt) 상속.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "TASK-DB-024"
+title: "사용자 데이터 모델링"
+type: "functional"
+epic: "EPIC_AUTH"
+req_ids: ["REQ-FUNC-024"]
+component: ["backend", "db"]
+
+inputs: []
+outputs:
+  success: { data: "User/Token Entity" }
+
+dependencies: []
+priority: "Must"
+start_date: "2026-01-30"
+due_date: "2026-01-30"
+agent_profile: ["backend-developer"]
+```
+ --label EPIC_AUTH,db,Issue-Automation,Functional,backend
+Error: could not add label: 'EPIC_AUTH' not found
+
+Failed to create issue for tasks/functional/Backend/TASK-DB-024.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-029: 통계 데이터 수집 및 전송 (Backend) --body # REQ-FUNC-029: 통계 데이터 수집 및 전송 (Backend)
+
+## 1. 목적 및 요약
+- **목적**: 사용자의 집중 데이터를 수집하여 분석 기반을 마련한다.
+- **요약**: `POST /api/stats/completion` 등을 통해 완료 여부, 집중 시간 등을 수신하고 `DailyStatistics` 테이블을 갱신한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-029, REQ-FUNC-030
+- **Component**: Backend API
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Aggregation**: 날짜별 `DailyStatistics` 레코드 생성 또는 업데이트.
+- **Increment**: `totalFocusTime += duration`, `completedSchedules += 1`.
+- **ForceQuit**: 강제 종료 이벤트 수신 시 `forceQuitCount += 1`.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-029-BE"
+title: "통계 데이터 수집 API"
+type: "functional"
+epic: "EPIC_STATS"
+req_ids: ["REQ-FUNC-029", "REQ-FUNC-030"]
+component: ["backend", "api", "stats"]
+
+inputs:
+  fields:
+    - { name: "type", type: "Enum(COMPLETE, FAIL, FORCE_QUIT)" }
+    - { name: "duration", type: "Int" }
+
+outputs:
+  success: { http_status: 200 }
+
+steps_hint:
+  - "DailyStatistics Entity 및 Repo 생성"
+  - "StatsService 구현 (UPSERT 로직)"
+
+preconditions:
+  - "REQ-FUNC-024-BE 완료"
+
+postconditions:
+  - "사용자의 일별 통계가 누적되어야 함"
+
+tests:
+  integration: ["Stats Accumulation"]
+
+dependencies: ["REQ-FUNC-024-BE"]
+estimated_effort: "M"
+start_date: "2026-02-12"
+due_date: "2026-02-13"
+priority: "Must"
+agent_profile: ["backend-developer"]
+```
+ --label api,stats,EPIC_STATS,Issue-Automation,Functional,backend
+Error: could not add label: 'api' not found
+
+Failed to create issue for tasks/functional/Backend/REQ-FUNC-029-BE.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-027: 스케줄 변경사항 업로드 (Backend) --body # REQ-FUNC-027: 스케줄 변경사항 업로드 (Backend)
+
+## 1. 목적 및 요약
+- **목적**: 클라이언트의 변경사항을 서버에 반영한다.
+- **요약**: `PUT /api/schedules/{id}`, `DELETE ...` 등을 처리한다. (001 Create 외 나머지 CUD)
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-027
+- **Component**: Backend API
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Update**: 단순 필드 수정 및 `updatedAt` 갱신.
+- **Delete**: Soft Delete 처리 (`deletedAt` 마킹).
+- **Conflict**: (이번 단계에선 LWW: Last Write Wins 적용).
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-027-BE"
+title: "스케줄 수정/삭제 API"
+type: "functional"
+epic: "EPIC_SYNC"
+req_ids: ["REQ-FUNC-027", "REQ-FUNC-004", "REQ-FUNC-005"]
+component: ["backend", "api"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { http_status: 200 }
+
+steps_hint:
+  - "Update/Delete Service 로직 구현"
+  - "Soft Delete 패턴 적용"
+
+preconditions:
+  - "REQ-FUNC-001-BE 완료"
+
+postconditions: []
+
+tests:
+  integration: ["Update -> Get", "Delete -> Get"]
+
+dependencies: ["REQ-FUNC-001-BE"]
+estimated_effort: "S"
+start_date: "2026-02-11"
+due_date: "2026-02-11"
+priority: "Must"
+agent_profile: ["backend-developer"]
+```
+ --label api,EPIC_SYNC,Issue-Automation,Functional,backend
+Error: could not add label: 'api' not found
+
+Failed to create issue for tasks/functional/Backend/REQ-FUNC-027-BE.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-025: 사용자 로그인 및 세션 복구 (Backend) --body # REQ-FUNC-025: 사용자 로그인 및 세션 복구 (Backend)
+
+## 1. 목적 및 요약
+- **목적**: 기존 사용자의 재진입을 처리한다.
+- **요약**: `POST /api/auth/login` 처리 및 Refresh Token을 이용한 `POST /api/auth/refresh` 기능 구현.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-025
+- **Component**: Backend API
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Login**: 이메일/비번 검증 -> 토큰 발급.
+- **Refresh**: 만료된 AccessToken 갱신. (Redis 등에 RefreshToken 저장 권장).
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-025-BE"
+title: "로그인 및 토큰 갱신(Refresh)"
+type: "functional"
+epic: "EPIC_AUTH"
+req_ids: ["REQ-FUNC-025"]
+component: ["backend", "auth"]
+
+inputs:
+  fields:
+    - { name: "email", type: "String" }
+    - { name: "password", type: "String" }
+
+outputs:
+  success: { body: "AccessToken, RefreshToken" }
+
+steps_hint:
+  - "Login 로직 구현"
+  - "RefreshToken 저장소 (Redis/DB) 구현"
+  - "TokenReissueService 구현"
+
+preconditions:
+  - "REQ-FUNC-024-BE 완료"
+
+postconditions:
+  - "유효한 RefreshToken으로 새 AccessToken을 받아야 함"
+
+tests:
+  unit: ["Login Service"]
+  integration: ["Refresh Flow"]
+
+dependencies: ["REQ-FUNC-024-BE"]
+estimated_effort: "M"
+start_date: "2026-02-03"
+due_date: "2026-02-04"
+priority: "Must"
+agent_profile: ["backend-developer"]
+```
+ --label auth,EPIC_AUTH,Issue-Automation,Functional,backend
+Error: could not add label: 'auth' not found
+
+Failed to create issue for tasks/functional/Backend/REQ-FUNC-025-BE.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title TASK-LOGIC-001: 스케줄 생성 비즈니스 로직 (Backend) --body # TASK-LOGIC-001: 스케줄 생성 비즈니스 로직 (Backend)
+
+## 1. 목적 및 요약
+- **목적**: 실제 비즈니스 규칙을 수행하고 데이터를 처리한다.
+- **요약**: `ScheduleService`에서 중복 검사(`clientId`), 엔티티 변환, 저장 로직을 구현하고 트랜잭션을 관리한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-001 (Business Layer)
+- **Component**: Backend Logic (Service Layer)
+
+## 3. Definition of Done (DoD)
+- [ ] **Idempotency**: 동일한 `clientId`로 요청이 오면 기존 데이터를 반환해야 한다 (에러 아님).
+- **Transaction**:
+  - [ ] `@Transactional` 적용.
+  - [ ] 저장 실패 시 롤백 확인.
+- **Mapping**: DTO -> Entity 변환 로직이 정확해야 한다.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "TASK-LOGIC-001"
+title: "스케줄 생성 서비스 로직 구현"
+type: "functional"
+epic: "EPIC_SCHEDULE_MGMT"
+req_ids: ["REQ-FUNC-001"]
+component: ["backend", "logic"]
+
+inputs:
+  fields: []
+
+outputs:
+  success: { code: "Service Logic Implemented" }
+
+dependencies: ["TASK-DB-001", "TASK-API-001"]
+priority: "Must"
+start_date: "2026-02-07"
+due_date: "2026-02-08"
+agent_profile: ["backend-developer"]
+```
+ --label EPIC_SCHEDULE_MGMT,logic,Issue-Automation,Functional,backend
+Error: could not add label: 'EPIC_SCHEDULE_MGMT' not found
+
+Failed to create issue for tasks/functional/Backend/TASK-LOGIC-001.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-FUNC-026: 앱 실행 시 스케줄 동기화 (Backend) --body # REQ-FUNC-026: 앱 실행 시 스케줄 동기화 (Backend)
+
+## 1. 목적 및 요약
+- **목적**: 기기 간 데이터 일관성을 유지한다.
+- **요약**: `GET /api/schedules` 요청 시 `lastSyncTime` 파라미터를 받아, 그 이후 변경된(생성/수정/삭제) 데이터를 반환한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-026 (SRS상 동기화 전체지만 여기선 조회 위주)
+- **Component**: Backend API
+
+## 3. Sub-Tasks (구현 상세)
+
+### 3.1 처리 (Process)
+- **Select**: `updatedAt > lastSyncTime` 인 스케줄 조회.
+- **Deleted**: `deletedAt`이 있는 항목도 포함하여 반환 (클라이언트가 삭제 처리할 수 있도록).
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-FUNC-026-BE"
+title: "스케줄 동기화 (조회 API)"
+type: "functional"
+epic: "EPIC_SYNC"
+req_ids: ["REQ-FUNC-026"]
+component: ["backend", "api"]
+
+inputs:
+  fields:
+    - { name: "lastSyncTime", type: "DateTime", optional: true }
+
+outputs:
+  success: { body: "List of Schedules (Active & Deleted)" }
+
+steps_hint:
+  - "QueryDSL 또는 JPA 메서드로 수정일 기준 조회 구현"
+  - "Soft Delete된 항목 포함 로직"
+
+preconditions:
+  - "REQ-FUNC-001-BE 완료"
+
+postconditions:
+  - "변경분만 정확히 내려가야 함"
+
+tests:
+  integration: ["Sync Scenario"]
+
+dependencies: ["REQ-FUNC-001-BE"]
+estimated_effort: "M"
+start_date: "2026-02-09"
+due_date: "2026-02-10"
+priority: "Must"
+agent_profile: ["backend-developer"]
+```
+ --label api,EPIC_SYNC,Issue-Automation,Functional,backend
+Error: could not add label: 'api' not found
+
+Failed to create issue for tasks/functional/Backend/REQ-FUNC-026-BE.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title TASK-LOGIC-024: 인증 비즈니스 로직 및 보안 설정 (Backend) --body # TASK-LOGIC-024: 인증 비즈니스 로직 및 보안 설정 (Backend)
+
+## 1. 목적 및 요약
+- **목적**: 안전한 인증 시스템을 구축한다.
+- **요약**: Spring Security 설정(FilterChain), `AuthService`(로그인/가입), JWT Provider 구현.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-FUNC-024 (Business Layer)
+- **Component**: Backend Logic
+
+## 3. Definition of Done (DoD)
+- [ ] **Security**: 패스워드는 반드시 BCrypt 등으로 해싱되어야 한다.
+- [ ] **JWT**: 토큰 생성, 검증, 만료 시간 처리가 정상 동작해야 한다.
+- [ ] **Service**: 중복 가입 시도 시 예외 발생 확인.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "TASK-LOGIC-024"
+title: "인증 로직 및 보안 설정"
+type: "functional"
+epic: "EPIC_AUTH"
+req_ids: ["REQ-FUNC-024"]
+component: ["backend", "logic"]
+
+inputs: []
+outputs:
+  success: { code: "Secure Auth Flow" }
+
+dependencies: ["TASK-DB-024", "TASK-API-024"]
+priority: "Must"
+start_date: "2026-02-01"
+due_date: "2026-02-02"
+agent_profile: ["backend-developer"]
+```
+ --label logic,EPIC_AUTH,Issue-Automation,Functional,backend
+Error: could not add label: 'logic' not found
+
+Failed to create issue for tasks/functional/Backend/TASK-LOGIC-024.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-NF-008: 데이터 보안 요구사항 (iOS/Backend) --body # REQ-NF-008: 데이터 보안 요구사항 (iOS/Backend)
+
+## 1. 목적 및 요약
+- **목적**: 사용자 데이터를 안전하게 보호한다.
+- **요약**: 로컬 저장은 `UserDefaults`(일반 데이터)와 `Keychain`(민감 데이터)을 구분하여 사용하고, 전송 구간은 HTTPS를 강제한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-NF-008, REQ-NF-009
+- **Component**: iOS App, Backend API
+
+## 3. Definition of Done (DoD)
+- [ ] **Local Storage**:
+  - 비밀번호, 액세스 토큰 등 민감 정보는 절대로 `UserDefaults`에 평문 저장하지 않는다.
+  - `Keychain` 서비스를 사용하여 저장해야 한다.
+- **Network**:
+  - 모든 API 호출은 HTTPS(TLS 1.2+)를 통해서만 이루어져야 한다. (ATS 설정 확인)
+- **Logging**:
+  - 로그에 개인정보(이메일, 비밀번호)가 남지 않도록 마스킹 처리해야 한다.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-NF-008-SEC"
+title: "데이터 보안 (Keychain, TLS, Logging)"
+type: "non-functional"
+epic: "EPIC_NFR"
+req_ids: ["REQ-NF-008"]
+component: ["ios-app", "backend", "security"]
+
+steps_hint:
+  - "KeychainHelper 유틸리티 구현"
+  - "NetworkInterceptor: Logging 시 Body Masking"
+
+tests:
+  manual: ["Charles Proxy로 HTTPS 암호화 확인"]
+  automated: ["Keychain 저장/로드 단위 테스트"]
+
+priority: "Must"
+agent_profile: ["ios-developer", "backend-developer"]
+```
+ --label Non-functional,ios-app,EPIC_NFR,security,Issue-Automation,backend
+Error: could not add label: 'Non-functional' not found
+
+Failed to create issue for tasks/non-functional/REQ-NF-008-SEC.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-NF-018: 네트워크 안정성 및 오프라인 대응 (iOS) --body # REQ-NF-018: 네트워크 안정성 및 오프라인 대응 (iOS)
+
+## 1. 목적 및 요약
+- **목적**: 불안정한 네트워크 환경에서도 데이터 유실을 방지한다.
+- **요약**: 오프라인 상태에서도 스케줄 생성/수정이 가능해야 하며(`Pending` 상태), 네트워크 복구 시 자동으로 재동기화(Retry/Sync)를 수행해야 한다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-NF-018, REQ-FUNC-021
+- **Component**: iOS App
+
+## 3. Definition of Done (DoD)
+- [ ] **Offline Capability**:
+  - 비행기 모드에서 스케줄 생성 시 에러 없이 로컬에 저장되어야 한다.
+  - `syncStatus`가 `.pending`으로 마킹되어야 한다.
+- **Auto Sync**:
+  - 네트워크 연결이 복구되면(Reachability Monitor), 백그라운드에서 동기화 로직이 트리거되어야 한다.
+- **Graceful Failure**:
+  - API 타임아웃(10초) 발생 시, 재시도(Exponential Backoff) 하거나 나중에 다시 시도하도록 큐에 넣어야 한다.
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-NF-018-NET"
+title: "네트워크 안정성 및 오프라인 동기화"
+type: "non-functional"
+epic: "EPIC_NFR"
+req_ids: ["REQ-NF-018"]
+component: ["ios-app", "network"]
+
+steps_hint:
+  - "NetworkMonitor (NWPathMonitor) 구현"
+  - "SyncManager: Queue 및 Retry 로직 구현"
+
+tests:
+  manual: ["비행기 모드 -> 생성 -> 해제 -> 동기화 확인"]
+
+priority: "Should"
+agent_profile: ["ios-developer"]
+```
+ --label Non-functional,ios-app,EPIC_NFR,Issue-Automation,network
+Error: could not add label: 'Non-functional' not found
+
+Failed to create issue for tasks/non-functional/REQ-NF-018-NET.md
+Running: gh issue create --repo ehdwns0814/issue-Automation-Unwind --title REQ-NF-001: iOS 성능 요구사항 (응답 속도 및 메모리) --body # REQ-NF-001: iOS 성능 요구사항 (응답 속도 및 메모리)
+
+## 1. 목적 및 요약
+- **목적**: 쾌적한 사용자 경험을 보장한다.
+- **요약**: UI 인터랙션 응답 시간을 100ms 이내로 유지하고, 앱 차단(Shield) 적용 지연 시간을 1초 이내로 줄인다.
+
+## 2. 관련 스펙 (SRS)
+- **ID**: REQ-NF-001, REQ-NF-002
+- **Component**: iOS App
+
+## 3. Definition of Done (DoD)
+- [ ] **UI Latency**: 버튼 탭 등 사용자 입력에 대한 피드백이 100ms 이내에 나타나야 한다. (Spinning, Highlight 등)
+- [ ] **Shield Latency**: 집중 시작 후 실제 앱 실행이 차단되기까지 1초를 넘지 않아야 한다.
+- **Resource Usage**:
+  - [ ] 아이들(Idle) 상태에서 CPU 사용률 5% 미만.
+  - [ ] 메모리 누수(Memory Leak)가 없어야 함 (Instruments 검증).
+
+## 4. 메타데이터 (YAML)
+
+```yaml
+task_id: "REQ-NF-001-PERF"
+title: "성능 목표 검증 (UI 응답 및 Shield 지연)"
+type: "non-functional"
+epic: "EPIC_NFR"
+req_ids: ["REQ-NF-001"]
+component: ["ios-app", "performance"]
+
+steps_hint:
+  - "XCTest MeasureBlock을 이용한 성능 테스트 작성"
+  - "Instruments(Time Profiler)로 병목 구간 분석"
+
+tests:
+  manual: ["초시계 측정 (Shield Delay)"]
+  automated: ["Performance Test Suite 실행"]
+
+priority: "Should"
+agent_profile: ["ios-developer"]
+```
+ --label Non-functional,ios-app,performance,EPIC_NFR,Issue-Automation
+Error: could not add label: 'Non-functional' not found
+
+Failed to create issue for tasks/non-functional/REQ-NF-001-PERF.md

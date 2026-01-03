@@ -7,8 +7,8 @@ alwaysApply: true
 Referenced in: [001-project-overview.mdc](001-project-overview.mdc)
 
 ## Frontend
-- Framework: React
-- Styling: Tailwind CSS
+- Framework: SwiftUI
+- Platform: iOS / macOS
 
 ## Backend
 - Core: Spring Boot
