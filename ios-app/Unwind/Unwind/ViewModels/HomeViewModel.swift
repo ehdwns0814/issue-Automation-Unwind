@@ -89,5 +89,23 @@ class HomeViewModel: ObservableObject {
         }
         updatedSchedule.updatedAt = Date()
         repository.updateSchedule(updatedSchedule)
+        
+        // 전체 완료 여부 체크 (올인 모드 해제 로직)
+        checkAllInCompletion()
+    }
+    
+    private func checkAllInCompletion() {
+        guard FocusManager.shared.isAllInModeActive else { return }
+        
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let todaysSchedules = repository.schedules.filter { 
+            calendar.isDate($0.createdAt, inSameDayAs: today) && $0.deletedAt == nil
+        }
+        
+        if !todaysSchedules.isEmpty && todaysSchedules.allSatisfy({ $0.isCompleted }) {
+            FocusManager.shared.stopAllInMode()
+            FocusManager.shared.showAllInCompletePopup = true
+        }
     }
 }
