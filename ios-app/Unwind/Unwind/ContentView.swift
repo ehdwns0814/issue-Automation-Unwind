@@ -95,36 +95,46 @@ struct ContentView: View {
     
     private var scheduleListView: some View {
         ForEach(homeViewModel.filteredSchedules) { schedule in
-            Button {
-                if !schedule.isCompleted && !focusManager.isAllInModeActive {
-                    focusManager.startFocus(on: schedule)
-                    showingTimer = true
+            HStack(spacing: 16) {
+                // 체크박스 (올인 모드에서 주요 인터랙션)
+                Button {
+                    homeViewModel.toggleCompletion(for: schedule)
+                } label: {
+                    Image(systemName: schedule.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundColor(schedule.isCompleted ? .green : .gray)
                 }
-            } label: {
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(schedule.name)
-                            .font(.headline)
-                            .foregroundColor(schedule.isCompleted ? .secondary : .primary)
-                        Text("\(schedule.durationSeconds / 60)분 집중")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                .buttonStyle(.plain)
+                
+                // 스케줄 정보 (상세 보기/타이머 시작)
+                Button {
+                    if !schedule.isCompleted && !focusManager.isAllInModeActive {
+                        focusManager.startFocus(on: schedule)
+                        showingTimer = true
                     }
-                    Spacer()
-                    if schedule.isCompleted {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                    } else if schedule.syncStatus == .pending {
-                        Image(systemName: "cloud.badge.plus")
-                            .foregroundColor(.orange)
-                            .font(.caption)
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(schedule.name)
+                                .font(.headline)
+                                .foregroundColor(schedule.isCompleted ? .secondary : .primary)
+                            Text("\(schedule.durationSeconds / 60)분 집중")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        if !schedule.isCompleted && schedule.syncStatus == .pending {
+                            Image(systemName: "cloud.badge.plus")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        }
                     }
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 4)
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+                .disabled(focusManager.isAllInModeActive && !schedule.isCompleted)
             }
-            .buttonStyle(.plain)
-            .contentShape(Rectangle())
-            .disabled(focusManager.isAllInModeActive && !schedule.isCompleted)
             .contextMenu {
                 if !schedule.isCompleted {
                     Button {
@@ -151,9 +161,18 @@ struct ContentView: View {
 
     private var allInModeBanner: some View {
         HStack {
-            Image(systemName: "flame.fill")
-            Text("올인 모드 진행 중")
-                .fontWeight(.bold)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Image(systemName: "flame.fill")
+                    Text("올인 모드 진행 중")
+                        .fontWeight(.bold)
+                }
+                if !homeViewModel.todayProgressText.isEmpty {
+                    Text(homeViewModel.todayProgressText)
+                        .font(.caption)
+                        .opacity(0.9)
+                }
+            }
             Spacer()
             Button("중단") {
                 focusManager.stopAllInMode()

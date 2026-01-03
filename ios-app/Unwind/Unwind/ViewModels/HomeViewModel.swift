@@ -6,6 +6,7 @@ class HomeViewModel: ObservableObject {
     @Published var selectedDate: Date = Date()
     @Published var filteredSchedules: [Schedule] = []
     @Published var dateChips: [Date] = []
+    @Published var todayProgressText: String = ""
     
     // 오늘 남은 스케줄이 있는지 확인
     var hasIncompleteSchedulesToday: Bool {
@@ -49,10 +50,40 @@ class HomeViewModel: ObservableObject {
             }
             .assign(to: \.filteredSchedules, on: self)
             .store(in: &cancellables)
+            
+        // 진행률 텍스트 바인딩
+        repository.$schedules
+            .map { schedules in
+                let calendar = Calendar.current
+                let today = calendar.startOfDay(for: Date())
+                let todaysSchedules = schedules.filter { 
+                    calendar.isDate($0.createdAt, inSameDayAs: today) && $0.deletedAt == nil
+                }
+                let total = todaysSchedules.count
+                let completed = todaysSchedules.filter { $0.isCompleted }.count
+                return total > 0 ? "\(completed)/\(total) 완료" : ""
+            }
+            .assign(to: \.todayProgressText, on: self)
+            .store(in: &cancellables)
     }
     
     /// 날짜를 선택하고 목록을 갱신합니다.
     func selectDate(_ date: Date) {
         self.selectedDate = date
+    }
+    
+    /// 스케줄의 완료 상태를 토글합니다.
+    func toggleCompletion(for schedule: Schedule) {
+        var updatedSchedule = schedule
+        if updatedSchedule.isCompleted {
+            updatedSchedule.status = .pending
+            updatedSchedule.isCompleted = false
+        } else {
+            updatedSchedule.status = .completed
+            updatedSchedule.isCompleted = true
+            updatedSchedule.completedAt = Date()
+        }
+        updatedSchedule.updatedAt = Date()
+        repository.updateSchedule(updatedSchedule)
     }
 }
