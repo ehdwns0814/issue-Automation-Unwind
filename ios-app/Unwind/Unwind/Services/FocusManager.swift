@@ -14,6 +14,7 @@ class FocusManager: ObservableObject {
     private var timer: AnyCancellable?
     private let deviceActivityCenter = DeviceActivityCenter()
     private let store = ManagedSettingsStore()
+    private let sharedDefaults = UserDefaults(suiteName: "group.com.unwind.data")
     
     private init() {}
     
@@ -21,6 +22,10 @@ class FocusManager: ObservableObject {
         self.currentSchedule = schedule
         self.timeRemaining = schedule.durationSeconds
         self.isFocusing = true
+        
+        // Save current schedule name and initial time for Shield Extension
+        sharedDefaults?.set(schedule.name, forKey: "activeScheduleName")
+        sharedDefaults?.set(schedule.durationSeconds, forKey: "remainingSeconds")
         
         // 1. Activate Shield
         activateShield()
@@ -48,6 +53,8 @@ class FocusManager: ObservableObject {
     private func tick() {
         if timeRemaining > 0 {
             timeRemaining -= 1
+            // Sync remaining time to Shield Extension
+            sharedDefaults?.set(timeRemaining, forKey: "remainingSeconds")
         } else {
             completeFocus()
         }
