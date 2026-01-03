@@ -11,7 +11,7 @@ import SwiftUI
 struct UnwindApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
         }
     }
 }
