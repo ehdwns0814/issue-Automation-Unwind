@@ -5,11 +5,14 @@ class ScheduleRepository: ObservableObject {
     static let shared = ScheduleRepository()
     
     private let storageKey = "com.unwind.schedules"
+    private let dailyRecordsKey = "unwind_daily_records"
     
     @Published var schedules: [Schedule] = []
+    @Published var dailyRecords: [String: DailyRecord] = [:]
     
     private init() {
         loadSchedules()
+        loadDailyRecords()
     }
     
     /// 로컬 저장소에서 스케줄 목록을 불러옵니다.
@@ -25,6 +28,22 @@ class ScheduleRepository: ObservableObject {
         } catch {
             print("Failed to decode schedules: \(error)")
             self.schedules = []
+        }
+    }
+    
+    /// 로컬 저장소에서 일별 기록을 불러옵니다.
+    func loadDailyRecords() {
+        guard let data = UserDefaults.standard.data(forKey: dailyRecordsKey) else {
+            self.dailyRecords = [:]
+            return
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode([String: DailyRecord].self, from: data)
+            self.dailyRecords = decoded
+        } catch {
+            print("Failed to decode daily records: \(error)")
+            self.dailyRecords = [:]
         }
     }
     
@@ -66,6 +85,33 @@ class ScheduleRepository: ObservableObject {
         } catch {
             print("Failed to encode schedules: \(error)")
         }
+    }
+    
+    /// 일별 기록을 디스크에 저장합니다.
+    private func saveDailyRecords() {
+        do {
+            let encoded = try JSONEncoder().encode(dailyRecords)
+            UserDefaults.standard.set(encoded, forKey: dailyRecordsKey)
+        } catch {
+            print("Failed to encode daily records: \(error)")
+        }
+    }
+    
+    /// 특정 날짜의 상태를 업데이트합니다.
+    func updateDailyStatus(for date: Date, status: DailyStatus) {
+        let dateString = formatDate(date)
+        var record = dailyRecords[dateString] ?? DailyRecord(date: dateString)
+        record.status = status
+        record.allInModeUsed = true // 상태가 명시적으로 업데이트되는 경우(포기 등)는 대개 올인 모드 사용 중임
+        dailyRecords[dateString] = record
+        saveDailyRecords()
+    }
+    
+    /// 날짜를 YYYY-MM-DD 형식의 문자열로 변환합니다.
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
     
     /// 특정 날짜의 스케줄만 필터링하여 가져옵니다.
