@@ -25,33 +25,48 @@ class ShieldConfigurationProvider: ShieldConfigurationDataSource {
     }
     
     private func createCustomConfiguration() -> ShieldConfiguration {
-        // 현재 활성화된 스케줄 이름과 남은 시간을 가져옵니다.
-        let scheduleName = sharedDefaults?.string(forKey: "activeScheduleName") ?? "집중"
-        let remainingSeconds = sharedDefaults?.integer(forKey: "remainingSeconds") ?? 0
+        // 올인 모드 여부를 확인합니다.
+        let isAllInMode = sharedDefaults?.bool(forKey: "isAllInModeActive") ?? false
         
-        // 남은 시간을 HH:MM:SS 형식으로 변환합니다.
-        let hours = remainingSeconds / 3600
-        let minutes = (remainingSeconds % 3600) / 60
-        let seconds = remainingSeconds % 60
-        let timeString = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+        let titleText: String
+        let subtitleText: String
+        
+        if isAllInMode {
+            // 올인 모드일 경우의 문구
+            let progress = sharedDefaults?.string(forKey: "allInModeProgress") ?? ""
+            titleText = "올인 모드 진행 중!"
+            subtitleText = "오늘의 모든 스케줄을 완료할 때까지 앱이 차단됩니다.\n현재 진행 상황: \(progress)"
+        } else {
+            // 일반 스케줄 모드일 경우의 문구
+            let scheduleName = sharedDefaults?.string(forKey: "activeScheduleName") ?? "집중"
+            let remainingSeconds = sharedDefaults?.integer(forKey: "remainingSeconds") ?? 0
+            
+            let hours = remainingSeconds / 3600
+            let minutes = (remainingSeconds % 3600) / 60
+            let seconds = remainingSeconds % 60
+            let timeString = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+            
+            titleText = "지금은 '\(scheduleName)' 중!"
+            subtitleText = "남은 시간: \(timeString)\n목표를 달성할 때까지 조금만 더 힘내세요."
+        }
         
         return ShieldConfiguration(
             backgroundBlurStyle: .dark,
             backgroundColor: .systemBackground,
-            icon: UIImage(systemName: "clock.badge.checkmark"),
+            icon: UIImage(systemName: isAllInMode ? "bolt.fill" : "clock.badge.checkmark"),
             title: ShieldConfiguration.Label(
-                text: "지금은 '\(scheduleName)' 중!",
+                text: titleText,
                 color: .label
             ),
             subtitle: ShieldConfiguration.Label(
-                text: "남은 시간: \(timeString)\n목표를 달성할 때까지 조금만 더 힘내세요.",
+                text: subtitleText,
                 color: .secondaryLabel
             ),
             primaryButtonLabel: ShieldConfiguration.Label(
                 text: "확인",
                 color: .white
             ),
-            primaryButtonBackgroundColor: .systemBlue
+            primaryButtonBackgroundColor: isAllInMode ? .systemOrange : .systemBlue
         )
     }
 }

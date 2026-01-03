@@ -14,6 +14,7 @@ class FocusManager: ObservableObject {
     @Published var isAllInModeActive: Bool = false {
         didSet {
             UserDefaults.standard.set(isAllInModeActive, forKey: "isAllInModeActive")
+            sharedDefaults?.set(isAllInModeActive, forKey: "isAllInModeActive")
         }
     }
     

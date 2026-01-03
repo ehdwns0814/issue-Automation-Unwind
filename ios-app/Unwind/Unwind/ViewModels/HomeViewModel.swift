@@ -6,7 +6,11 @@ class HomeViewModel: ObservableObject {
     @Published var selectedDate: Date = Date()
     @Published var filteredSchedules: [Schedule] = []
     @Published var dateChips: [Date] = []
-    @Published var todayProgressText: String = ""
+    @Published var todayProgressText: String = "" {
+        didSet {
+            UserDefaults(suiteName: "group.com.unwind.data")?.set(todayProgressText, forKey: "allInModeProgress")
+        }
+    }
     
     // 오늘 남은 스케줄이 있는지 확인
     var hasIncompleteSchedulesToday: Bool {
