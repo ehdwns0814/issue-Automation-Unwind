@@ -7,6 +7,15 @@ class HomeViewModel: ObservableObject {
     @Published var filteredSchedules: [Schedule] = []
     @Published var dateChips: [Date] = []
     
+    // 오늘 남은 스케줄이 있는지 확인
+    var hasIncompleteSchedulesToday: Bool {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return repository.schedules.contains { 
+            calendar.isDate($0.createdAt, inSameDayAs: today) && !$0.isCompleted && $0.deletedAt == nil
+        }
+    }
+    
     private let repository: ScheduleRepository
     private var cancellables = Set<AnyCancellable>()
     
