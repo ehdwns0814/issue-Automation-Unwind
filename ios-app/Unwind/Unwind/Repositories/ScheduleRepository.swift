@@ -49,4 +49,36 @@ class ScheduleRepository: ObservableObject {
         let calendar = Calendar.current
         return schedules.filter { calendar.isDate($0.createdAt, inSameDayAs: date) }
     }
+    
+    /// 최근에 사용한 스케줄 목록을 가져옵니다 (중복 제거).
+    func getRecentSchedules(limit: Int = 5) -> [Schedule] {
+        var seen = Set<String>()
+        var result: [Schedule] = []
+        
+        let sortedSchedules = schedules.sorted { $0.updatedAt > $1.updatedAt }
+        
+        for schedule in sortedSchedules {
+            let key = "\(schedule.name)_\(schedule.durationSeconds)"
+            if !seen.contains(key) {
+                seen.insert(key)
+                result.append(schedule)
+            }
+            if result.count >= limit {
+                break
+            }
+        }
+        
+        return result
+    }
+    
+    /// 기존 스케줄을 업데이트합니다.
+    func updateSchedule(_ schedule: Schedule) {
+        if let index = schedules.firstIndex(where: { $0.id == schedule.id }) {
+            var updatedSchedule = schedule
+            updatedSchedule.updatedAt = Date()
+            updatedSchedule.syncStatus = .pending
+            schedules[index] = updatedSchedule
+            saveToDisk()
+        }
+    }
 }

@@ -24,6 +24,8 @@ struct Schedule: Identifiable, Codable {
     var syncStatus: SyncStatus
     /// 완료 여부
     var isCompleted: Bool
+    /// 실행 여부 (타이머 작동 중)
+    var isRunning: Bool
 
     init(id: UUID = UUID(), name: String, durationSeconds: Int, syncStatus: SyncStatus = .pending) {
         self.id = id
@@ -33,5 +35,6 @@ struct Schedule: Identifiable, Codable {
         self.updatedAt = Date()
         self.syncStatus = syncStatus
         self.isCompleted = false
+        self.isRunning = false
     }
 }
