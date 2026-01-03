@@ -8,44 +8,51 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var viewModel = HomeViewModel()
+    @StateObject private var repository = ScheduleRepository.shared
+    @StateObject private var homeViewModel = HomeViewModel()
     @State private var showingAddSheet = false
     @State private var editingSchedule: Schedule?
+    @State private var scheduleToDelete: Schedule?
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                DateStripView(viewModel: viewModel)
-                    .dividerUnderline()
+                DateStripView(viewModel: homeViewModel)
                 
                 List {
-                    if viewModel.filteredSchedules.isEmpty {
+                    if homeViewModel.filteredSchedules.isEmpty {
                         emptyStateView
                     } else {
-                        scheduleList
+                        scheduleListView
                     }
                 }
-                .listStyle(.plain)
             }
             .navigationTitle("Unwind")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button(action: {
-                        editingSchedule = nil
-                        showingAddSheet = true
-                    }) {
+                    Button(action: { showingAddSheet = true }) {
                         Image(systemName: "plus")
                     }
                 }
             }
             .sheet(isPresented: $showingAddSheet) {
-                AddScheduleView(scheduleToEdit: editingSchedule)
+                AddScheduleView()
             }
-            .fullScreenCover(isPresented: Binding(
-                get: { FocusManager.shared.isFocusing },
-                set: { if !$0 { FocusManager.shared.stopFocus() } }
+            .sheet(item: $editingSchedule) { schedule in
+                AddScheduleView(scheduleToEdit: schedule)
+            }
+            .alert("스케줄 삭제", isPresented: Binding(
+                get: { scheduleToDelete != nil },
+                set: { if !$0 { scheduleToDelete = nil } }
             )) {
-                TimerView()
+                Button("취소", role: .cancel) {}
+                Button("삭제", role: .destructive) {
+                    if let schedule = scheduleToDelete {
+                        repository.deleteSchedule(id: schedule.id)
+                    }
+                }
+            } message: {
+                Text("이 스케줄을 정말 삭제하시겠습니까?")
             }
         }
     }
@@ -53,25 +60,23 @@ struct ContentView: View {
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Spacer()
-            Image(systemName: "calendar.badge.plus")
-            .font(.system(size: 48))
-            .foregroundColor(.gray)
-            Text("이 날짜에는 스케줄이 없습니다.")
-            .foregroundColor(.gray)
-            Button("이 날에 추가하기") {
-                editingSchedule = nil
+            Image(systemName: "clock.badge.checkmark")
+                .font(.system(size: 48))
+                .foregroundColor(.gray)
+            Text("해당 날짜에 생성된 스케줄이 없습니다.")
+                .foregroundColor(.gray)
+            Button("첫 스케줄 만들기") {
                 showingAddSheet = true
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
             Spacer()
         }
         .frame(maxWidth: .infinity, minHeight: 300)
         .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
     }
     
-    private var scheduleList: some View {
-        ForEach(viewModel.filteredSchedules) { schedule in
+    private var scheduleListView: some View {
+        ForEach(homeViewModel.filteredSchedules) { schedule in
             HStack {
                 VStack(alignment: .leading) {
                     Text(schedule.name)
@@ -81,16 +86,6 @@ struct ContentView: View {
                         .foregroundColor(.secondary)
                 }
                 Spacer()
-                
-                Button(action: {
-                    FocusManager.shared.startFocus(for: schedule)
-                }) {
-                    Image(systemName: "play.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.accentColor)
-                }
-                .buttonStyle(.plain)
-                
                 if schedule.syncStatus == .pending {
                     Image(systemName: "cloud.badge.plus")
                         .foregroundColor(.orange)
@@ -98,31 +93,33 @@ struct ContentView: View {
                 }
             }
             .padding(.vertical, 4)
+            .contentShape(Rectangle())
             .contextMenu {
                 if !schedule.isCompleted {
                     Button {
                         editingSchedule = schedule
-                        showingAddSheet = true
                     } label: {
                         Label("수정", systemImage: "pencil")
                     }
                 }
+                
+                Button(role: .destructive) {
+                    scheduleToDelete = schedule
+                } label: {
+                    Label("삭제", systemImage: "trash")
+                }
             }
         }
-    }
-}
-
-extension View {
-    func dividerUnderline() -> some View {
-        self.overlay(
-            Rectangle()
-                .fill(Color.gray.opacity(0.1))
-                .frame(height: 1),
-            alignment: .bottom
-        )
+        .onDelete { indexSet in
+            indexSet.forEach { index in
+                let schedule = homeViewModel.filteredSchedules[index]
+                scheduleToDelete = schedule
+            }
+        }
     }
 }
 
 #Preview {
     ContentView()
 }
+

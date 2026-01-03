@@ -40,6 +40,11 @@ class AddScheduleViewModel: ObservableObject {
         
         if var schedule = originalSchedule {
             // 수정 로직: 기존 데이터 보존하며 업데이트
+            if schedule.isCompleted {
+                errorMessage = "이미 완료된 스케줄은 수정할 수 없습니다."
+                return false
+            }
+            
             schedule.name = name
             schedule.durationSeconds = durationMinutes * 60
             schedule.updatedAt = Date()
