@@ -15,10 +15,15 @@ struct ContentView: View {
     @State private var editingSchedule: Schedule?
     @State private var scheduleToDelete: Schedule?
     @State private var showingTimer = false
+    @State private var showingAllInAlert = false
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                if focusManager.isAllInModeActive {
+                    allInModeBanner
+                }
+                
                 DateStripView(viewModel: homeViewModel)
                 
                 List {
@@ -31,6 +36,9 @@ struct ContentView: View {
             }
             .navigationTitle("Unwind")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    allInModeToggle
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: { showingAddSheet = true }) {
                         Image(systemName: "plus")
@@ -45,6 +53,11 @@ struct ContentView: View {
             }
             .fullScreenCover(isPresented: $showingTimer) {
                 TimerView()
+            }
+            .alert("올인 모드", isPresented: $showingAllInAlert) {
+                Button("확인") { }
+            } message: {
+                Text("오늘 예정된 미완료 스케줄이 없습니다.")
             }
             .alert("스케줄 삭제", isPresented: Binding(
                 get: { scheduleToDelete != nil },
@@ -83,7 +96,7 @@ struct ContentView: View {
     private var scheduleListView: some View {
         ForEach(homeViewModel.filteredSchedules) { schedule in
             Button {
-                if !schedule.isCompleted {
+                if !schedule.isCompleted && !focusManager.isAllInModeActive {
                     focusManager.startFocus(on: schedule)
                     showingTimer = true
                 }
@@ -111,6 +124,7 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
             .contentShape(Rectangle())
+            .disabled(focusManager.isAllInModeActive && !schedule.isCompleted)
             .contextMenu {
                 if !schedule.isCompleted {
                     Button {
@@ -134,9 +148,42 @@ struct ContentView: View {
             }
         }
     }
+
+    private var allInModeBanner: some View {
+        HStack {
+            Image(systemName: "flame.fill")
+            Text("올인 모드 진행 중")
+                .fontWeight(.bold)
+            Spacer()
+            Button("중단") {
+                focusManager.stopAllInMode()
+            }
+            .buttonStyle(.bordered)
+            .tint(.white)
+        }
+        .padding()
+        .background(Color.orange)
+        .foregroundColor(.white)
+    }
+    
+    private var allInModeToggle: some View {
+        Button {
+            if focusManager.isAllInModeActive {
+                focusManager.stopAllInMode()
+            } else {
+                if homeViewModel.hasIncompleteSchedulesToday {
+                    focusManager.startAllInMode()
+                } else {
+                    showingAllInAlert = true
+                }
+            }
+        } label: {
+            Image(systemName: focusManager.isAllInModeActive ? "bolt.fill" : "bolt")
+                .foregroundColor(focusManager.isAllInModeActive ? .orange : .primary)
+        }
+    }
 }
 
 #Preview {
     ContentView()
 }
-
