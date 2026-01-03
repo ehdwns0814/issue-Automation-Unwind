@@ -40,6 +40,21 @@ struct ContentView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     allInModeToggle
                 }
+                
+                ToolbarItem(placement: .principal) {
+                    if homeViewModel.currentStreak > 0 {
+                        HStack(spacing: 4) {
+                            Text("🔥")
+                            Text("\(homeViewModel.currentStreak)일 연속")
+                                .fontWeight(.bold)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(12)
+                    }
+                }
+                
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: { showingAddSheet = true }) {
                         Image(systemName: "plus")
