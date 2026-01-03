@@ -1,61 +1,71 @@
 import SwiftUI
 
-/// 집중 세션 중 카운트다운을 보여주는 전체 화면 뷰입니다.
 struct TimerView: View {
-    @ObservedObject var focusManager = FocusManager.shared
+    @StateObject private var focusManager = FocusManager.shared
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        ZStack {
-            Color(.systemBackground)
-                .ignoresSafeArea()
+        VStack(spacing: 40) {
+            if let schedule = focusManager.currentSchedule {
+                Text(schedule.name)
+                    .font(.title)
+                    .fontWeight(.bold)
+            }
             
-            VStack(spacing: 40) {
-                if let schedule = focusManager.currentSchedule {
-                    Text(schedule.name)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                }
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 20)
                 
-                // 타이머 표시 (초 -> mm:ss 변환)
-                Text(timeString(from: focusManager.remainingTime))
-                    .font(.system(size: 80, weight: .thin, design: .monospaced))
-                    .padding()
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 20, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear, value: focusManager.timeRemaining)
                 
-                VStack(spacing: 12) {
-                    Text("집중 중입니다...")
-                        .foregroundColor(.secondary)
-                    
-                    Text("다른 앱의 사용이 제한됩니다.")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
+                Text(timeString)
+                    .font(.system(size: 60, weight: .medium, design: .monospaced))
+            }
+            .frame(width: 280, height: 280)
+            
+            VStack(spacing: 20) {
+                Text("집중 모드가 활성화되었습니다.")
+                    .foregroundColor(.secondary)
                 
-                Spacer()
-                
-                Button(action: {
+                Button(role: .destructive) {
                     focusManager.stopFocus()
-                }) {
+                    dismiss()
+                } label: {
                     Text("포기하기")
                         .fontWeight(.semibold)
-                        .foregroundColor(.red)
-                        .padding(.horizontal, 40)
-                        .padding(.vertical, 15)
-                        .background(Capsule().stroke(Color.red, lineWidth: 1))
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(12)
                 }
-                .padding(.bottom, 50)
+                .padding(.horizontal, 40)
+            }
+        }
+        .padding()
+        .onReceive(focusManager.$isFocusing) { isFocusing in
+            if !isFocusing {
+                dismiss()
             }
         }
     }
     
-    /// 초 단위를 MM:SS 형식의 문자열로 변환합니다.
-    private func timeString(from seconds: Int) -> String {
-        let minutes = seconds / 60
-        let remainingSeconds = seconds % 60
-        return String(format: "%02d:%02d", minutes, remainingSeconds)
+    private var progress: CGFloat {
+        guard let total = focusManager.currentSchedule?.durationSeconds, total > 0 else { return 0 }
+        return CGFloat(focusManager.timeRemaining) / CGFloat(total)
+    }
+    
+    private var timeString: String {
+        let minutes = focusManager.timeRemaining / 60
+        let seconds = focusManager.timeRemaining % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 }
 
 #Preview {
     TimerView()
 }
+
