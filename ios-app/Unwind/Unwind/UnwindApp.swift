@@ -22,6 +22,7 @@ struct UnwindApp: App {
                     if newPhase == .active {
                         // 앱이 포그라운드로 올라올 때마다 권한 상태를 체크합니다.
                         penaltyManager.checkAuthorizationStatus()
+                        ScreentimeManager.shared.updateAuthorizationStatus()
                     }
                 }
         }

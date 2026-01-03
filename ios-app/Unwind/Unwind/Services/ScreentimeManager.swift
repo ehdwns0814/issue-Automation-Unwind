@@ -13,12 +13,22 @@ class ScreentimeManager: ObservableObject {
         }
     }
     
+    @Published var authorizationStatus: AuthorizationStatus = .notDetermined
+    
     private init() {
         loadSelection()
+        updateAuthorizationStatus()
     }
     
     func requestAuthorization() async throws {
         try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+        updateAuthorizationStatus()
+    }
+    
+    func updateAuthorizationStatus() {
+        DispatchQueue.main.async {
+            self.authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+        }
     }
     
     private func saveSelection() {
