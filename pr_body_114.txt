@@ -1,0 +1,20 @@
+## 개요
+앱의 핵심 기능인 스크린 타임(FamilyControls) 권한이 거부되었을 때, 사용자를 안내하고 설정을 유도하는 UI를 구현했습니다.
+
+## 주요 변경 사항
+1. **권한 상태 관리 기능 추가 (`ScreentimeManager.swift`)**
+   - `AuthorizationCenter.shared.authorizationStatus`를 실시간으로 감시할 수 있도록 `@Published var authorizationStatus` 프로퍼티를 추가했습니다.
+   - 앱이 포그라운드로 올라올 때마다 상태를 업데이트하는 `updateAuthorizationStatus()` 메서드를 구현했습니다.
+
+2. **권한 요청 안내 뷰 구현 (`PermissionRequestView.swift`)**
+   - 권한 거부 시 표시될 전용 안내 화면을 제작했습니다.
+   - 앱 설정 화면으로 즉시 이동할 수 있는 버튼(`UIApplication.openSettingsURLString`)을 제공합니다.
+
+3. **메인 화면 연동 (`ContentView.swift`)**
+   - `ScreentimeManager`의 권한 상태가 `.denied`인 경우, `PermissionRequestView`를 `fullScreenCover`로 띄워 메인 기능 사용을 제한하고 권한 허용을 유도합니다.
+
+4. **앱 생명주기 연동 (`UnwindApp.swift`)**
+   - `scenePhase`가 `.active`로 변경될 때마다 권한 상태를 최신화하여, 설정에서 권한을 변경하고 돌아온 경우 즉시 UI에 반영되도록 했습니다.
+
+## 관련 이슈
+- Closes #114

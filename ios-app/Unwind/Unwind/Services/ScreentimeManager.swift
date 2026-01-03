@@ -17,18 +17,36 @@ class ScreentimeManager: ObservableObject {
     
     private init() {
         loadSelection()
-        updateAuthorizationStatus()
     }
     
     func requestAuthorization() async throws {
+        
+        #if DEBUG
+        // Mock Mode: 권한 요청을 건너뛰고 바로 승인된 것으로 처리합니다.
+        await MainActor.run {
+            self.authorizationStatus = .approved
+        }
+        #else
         try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
         updateAuthorizationStatus()
+        #endif
     }
     
     func updateAuthorizationStatus() {
+        
+        #if DEBUG
+        // Mock Mode: 실제 API를 호출하지 않고 승인 상태를 유지하여 크래시를 방지합니다.
         DispatchQueue.main.async {
-            self.authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+            self.authorizationStatus = .approved
         }
+        #else
+        Task {
+            let status = AuthorizationCenter.shared.authorizationStatus
+            await MainActor.run {
+                self.authorizationStatus = status
+            }
+        }
+        #endif
     }
     
     private func saveSelection() {
@@ -50,4 +68,3 @@ class ScreentimeManager: ObservableObject {
         }
     }
 }
-
