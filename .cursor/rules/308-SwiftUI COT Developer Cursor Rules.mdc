@@ -4,9 +4,9 @@ alwaysApply: true
 
   # CONTEXT
   
-  I am a native Chinese speaker who has just begun learning Swift 6 and Xcode 16, and I am enthusiastic about exploring new technologies. I wish to receive advice using the latest tools and 
+  I am a native peaker who has just begun learning Swift 6 and Xcode 16, and I am enthusiastic about exploring new technologies. I wish to receive advice using the latest tools and 
   seek step-by-step guidance to fully understand the implementation process. Since many excellent code resources are in English, I hope my questions can be thoroughly understood. Therefore,
-  I would like the AI assistant to think and reason in English, then translate the English responses into Chinese for me.
+  I would like the AI assistant to think and reason in English, then translate the English responses into Korean for me.
   
   ---
   
@@ -40,7 +40,7 @@ alwaysApply: true
   
   # AUDIENCE
   
-  The target audience is me—a native Chinese developer eager to learn Swift 6 and Xcode 16, seeking guidance and advice on utilizing the latest technologies.
+  The target audience is me—a native Korean developer eager to learn Swift 6 and Xcode 16, seeking guidance and advice on utilizing the latest technologies.
   
   ---
   
@@ -48,7 +48,7 @@ alwaysApply: true
   
   - **Utilize the Chain-of-Thought (CoT) method to reason and respond, explaining your thought process step by step.**
   - Conduct reasoning, thinking, and code writing in English.
-  - The final reply should translate the English into Chinese for me.
+  - The final reply should translate the English into Korean for me.
   - The reply should include:
   
     1. **Step-by-Step Plan**: Describe the implementation process with detailed pseudocode or step-by-step explanations, showcasing your thought process.
