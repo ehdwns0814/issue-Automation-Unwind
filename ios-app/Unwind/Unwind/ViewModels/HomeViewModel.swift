@@ -11,6 +11,7 @@ class HomeViewModel: ObservableObject {
             UserDefaults(suiteName: "group.com.unwind.data")?.set(todayProgressText, forKey: "allInModeProgress")
         }
     }
+    @Published var todayStatus: DailyStatus = .noPlan
     
     // 오늘 남은 스케줄이 있는지 확인
     var hasIncompleteSchedulesToday: Bool {
@@ -69,6 +70,23 @@ class HomeViewModel: ObservableObject {
             }
             .assign(to: \.todayProgressText, on: self)
             .store(in: &cancellables)
+            
+        // 오늘 날짜 상태 바인딩
+        repository.$dailyRecords
+            .map { [weak self] records in
+                guard let self = self else { return .noPlan }
+                let dateString = self.formatDate(Date())
+                return records[dateString]?.status ?? .noPlan
+            }
+            .assign(to: \.todayStatus, on: self)
+            .store(in: &cancellables)
+    }
+    
+    /// 날짜를 YYYY-MM-DD 형식의 문자열로 변환합니다.
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
     
     /// 날짜를 선택하고 목록을 갱신합니다.
@@ -104,6 +122,8 @@ class HomeViewModel: ObservableObject {
         }
         
         if !todaysSchedules.isEmpty && todaysSchedules.allSatisfy({ $0.isCompleted }) {
+            // 모든 스케줄 완료 시 성공 기록
+            repository.updateDailyStatus(for: today, status: .success)
             FocusManager.shared.stopAllInMode()
             FocusManager.shared.showAllInCompletePopup = true
         }

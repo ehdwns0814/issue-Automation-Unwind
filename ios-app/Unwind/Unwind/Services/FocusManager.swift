@@ -84,6 +84,15 @@ class FocusManager: ObservableObject {
         stopAllInMonitoring()
     }
     
+    /// 올인 모드를 중단(포기)했을 때 호출됩니다.
+    func abandonAllInMode() {
+        // 1. 상태 업데이트 (오늘의 전체 기록을 실패로 마킹)
+        ScheduleRepository.shared.updateDailyStatus(for: Date(), status: .failure)
+        
+        // 2. 올인 모드 종료 (차단 해제 등)
+        stopAllInMode()
+    }
+    
     private func tick() {
         if timeRemaining > 0 {
             timeRemaining -= 1

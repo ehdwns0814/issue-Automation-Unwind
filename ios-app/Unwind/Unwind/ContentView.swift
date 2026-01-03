@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var scheduleToDelete: Schedule?
     @State private var showingTimer = false
     @State private var showingAllInAlert = false
+    @State private var showingAllInAbandonAlert = false
     
     var body: some View {
         NavigationStack {
@@ -65,6 +66,14 @@ struct ContentView: View {
                 }
             } message: {
                 Text("오늘의 모든 스케줄을 완료하셨습니다.\n정말 고생 많으셨어요! 🎉")
+            }
+            .alert("올인 모드 중단", isPresented: $showingAllInAbandonAlert) {
+                Button("계속하기", role: .cancel) { }
+                Button("포기하기", role: .destructive) {
+                    focusManager.abandonAllInMode()
+                }
+            } message: {
+                Text("지금 중단하면 오늘은 실패로 기록됩니다.\n정말 포기하시겠습니까?")
             }
             .alert("스케줄 삭제", isPresented: Binding(
                 get: { scheduleToDelete != nil },
@@ -182,7 +191,7 @@ struct ContentView: View {
             }
             Spacer()
             Button("중단") {
-                focusManager.stopAllInMode()
+                showingAllInAbandonAlert = true
             }
             .buttonStyle(.bordered)
             .tint(.white)
@@ -195,7 +204,7 @@ struct ContentView: View {
     private var allInModeToggle: some View {
         Button {
             if focusManager.isAllInModeActive {
-                focusManager.stopAllInMode()
+                showingAllInAbandonAlert = true
             } else {
                 if homeViewModel.hasIncompleteSchedulesToday {
                     focusManager.startAllInMode()
