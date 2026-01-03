@@ -1,9 +1,13 @@
 import SwiftUI
 
-/// 새로운 스케줄을 추가하기 위한 모달 뷰입니다.
+/// 새로운 스케줄을 추가하거나 기존 스케줄을 수정하기 위한 모달 뷰입니다.
 struct AddScheduleView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = AddScheduleViewModel()
+    @StateObject private var viewModel: AddScheduleViewModel
+    
+    init(scheduleToEdit: Schedule? = nil) {
+        _viewModel = StateObject(wrappedValue: AddScheduleViewModel(scheduleToEdit: scheduleToEdit))
+    }
     
     var body: some View {
         NavigationStack {
@@ -33,7 +37,7 @@ struct AddScheduleView: View {
                     }
                 }
             }
-            .navigationTitle("새 스케줄 생성")
+            .navigationTitle(viewModel.isEditing ? "스케줄 수정" : "새 스케줄 생성")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 toolbarItems
@@ -49,7 +53,7 @@ struct AddScheduleView: View {
             }
         }
         ToolbarItem(placement: .confirmationAction) {
-            Button("저장") {
+            Button(viewModel.isEditing ? "수정" : "저장") {
                 if viewModel.saveSchedule() {
                     dismiss()
                 }

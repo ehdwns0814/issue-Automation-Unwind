@@ -34,7 +34,9 @@ class HomeViewModel: ObservableObject {
             .combineLatest($selectedDate)
             .map { (schedules, selectedDate) in
                 let calendar = Calendar.current
-                return schedules.filter { calendar.isDate($0.createdAt, inSameDayAs: selectedDate) }
+                return schedules.filter { 
+                    calendar.isDate($0.createdAt, inSameDayAs: selectedDate) && $0.deletedAt == nil
+                }
             }
             .assign(to: \.filteredSchedules, on: self)
             .store(in: &cancellables)

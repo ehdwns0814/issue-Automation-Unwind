@@ -34,6 +34,30 @@ class ScheduleRepository: ObservableObject {
         saveToDisk()
     }
     
+    /// 기존 스케줄을 수정합니다.
+    func updateSchedule(_ schedule: Schedule) {
+        if let index = schedules.firstIndex(where: { $0.id == schedule.id }) {
+            schedules[index] = schedule
+            saveToDisk()
+        }
+    }
+    
+    /// 스케줄을 삭제합니다.
+    func deleteSchedule(id: UUID) {
+        if let index = schedules.firstIndex(where: { $0.id == id }) {
+            let schedule = schedules[index]
+            if schedule.syncStatus == .pending {
+                // 서버에 없는 데이터는 완전 삭제 (Hard Delete)
+                schedules.remove(at: index)
+            } else {
+                // 서버와 동기화된 데이터는 삭제 마킹 (Soft Delete)
+                schedules[index].deletedAt = Date()
+                schedules[index].syncStatus = .pending // 삭제 상태 동기화 필요
+            }
+            saveToDisk()
+        }
+    }
+    
     /// 변경된 스케줄 목록을 디스크에 영구 저장합니다.
     private func saveToDisk() {
         do {
@@ -48,37 +72,5 @@ class ScheduleRepository: ObservableObject {
     func getSchedules(for date: Date) -> [Schedule] {
         let calendar = Calendar.current
         return schedules.filter { calendar.isDate($0.createdAt, inSameDayAs: date) }
-    }
-    
-    /// 최근에 사용한 스케줄 목록을 가져옵니다 (중복 제거).
-    func getRecentSchedules(limit: Int = 5) -> [Schedule] {
-        var seen = Set<String>()
-        var result: [Schedule] = []
-        
-        let sortedSchedules = schedules.sorted { $0.updatedAt > $1.updatedAt }
-        
-        for schedule in sortedSchedules {
-            let key = "\(schedule.name)_\(schedule.durationSeconds)"
-            if !seen.contains(key) {
-                seen.insert(key)
-                result.append(schedule)
-            }
-            if result.count >= limit {
-                break
-            }
-        }
-        
-        return result
-    }
-    
-    /// 기존 스케줄을 업데이트합니다.
-    func updateSchedule(_ schedule: Schedule) {
-        if let index = schedules.firstIndex(where: { $0.id == schedule.id }) {
-            var updatedSchedule = schedule
-            updatedSchedule.updatedAt = Date()
-            updatedSchedule.syncStatus = .pending
-            schedules[index] = updatedSchedule
-            saveToDisk()
-        }
     }
 }
