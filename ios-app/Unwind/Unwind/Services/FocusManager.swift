@@ -1,0 +1,98 @@
+import Foundation
+import FamilyControls
+import DeviceActivity
+import ManagedSettings
+import Combine
+
+class FocusManager: ObservableObject {
+    static let shared = FocusManager()
+    
+    @Published var currentSchedule: Schedule?
+    @Published var timeRemaining: Int = 0
+    @Published var isFocusing: Bool = false
+    
+    private var timer: AnyCancellable?
+    private let deviceActivityCenter = DeviceActivityCenter()
+    private let store = ManagedSettingsStore()
+    
+    private init() {}
+    
+    func startFocus(on schedule: Schedule) {
+        self.currentSchedule = schedule
+        self.timeRemaining = schedule.durationSeconds
+        self.isFocusing = true
+        
+        // 1. Activate Shield
+        activateShield()
+        
+        // 2. Start Timer
+        timer = Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.tick()
+            }
+        
+        // 3. Start Device Activity Monitoring (for system level enforcement)
+        startMonitoring(schedule: schedule)
+    }
+    
+    func stopFocus() {
+        isFocusing = false
+        timer?.cancel()
+        timer = nil
+        
+        deactivateShield()
+        stopMonitoring()
+    }
+    
+    private func tick() {
+        if timeRemaining > 0 {
+            timeRemaining -= 1
+        } else {
+            completeFocus()
+        }
+    }
+    
+    private func completeFocus() {
+        guard var schedule = currentSchedule else { return }
+        schedule.isCompleted = true
+        schedule.updatedAt = Date()
+        ScheduleRepository.shared.updateSchedule(schedule)
+        
+        stopFocus()
+    }
+    
+    private func activateShield() {
+        let selection = ScreentimeManager.shared.selection
+        store.shield.applications = selection.applicationTokens
+        store.shield.applicationCategories = .specific(selection.categoryTokens)
+        store.shield.webDomains = selection.webDomainTokens
+    }
+    
+    private func deactivateShield() {
+        store.shield.applications = nil
+        store.shield.applicationCategories = nil
+        store.shield.webDomains = nil
+    }
+    
+    private func startMonitoring(schedule: Schedule) {
+        let name = DeviceActivityName("com.unwind.focusSession")
+        // Use a simple schedule for monitoring
+        let activitySchedule = DeviceActivitySchedule(
+            intervalStart: DateComponents(hour: 0, minute: 0),
+            intervalEnd: DateComponents(hour: 23, minute: 59),
+            repeats: true
+        )
+        
+        do {
+            try deviceActivityCenter.startMonitoring(name, during: activitySchedule)
+        } catch {
+            print("Failed to start monitoring: \(error)")
+        }
+    }
+    
+    private func stopMonitoring() {
+        deviceActivityCenter.stopMonitoring([DeviceActivityName("com.unwind.focusSession")])
+    }
+}
+

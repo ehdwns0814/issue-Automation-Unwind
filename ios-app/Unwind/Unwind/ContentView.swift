@@ -10,9 +10,11 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var repository = ScheduleRepository.shared
     @StateObject private var homeViewModel = HomeViewModel()
+    @StateObject private var focusManager = FocusManager.shared
     @State private var showingAddSheet = false
     @State private var editingSchedule: Schedule?
     @State private var scheduleToDelete: Schedule?
+    @State private var showingTimer = false
     
     var body: some View {
         NavigationStack {
@@ -40,6 +42,9 @@ struct ContentView: View {
             }
             .sheet(item: $editingSchedule) { schedule in
                 AddScheduleView(scheduleToEdit: schedule)
+            }
+            .fullScreenCover(isPresented: $showingTimer) {
+                TimerView()
             }
             .alert("스케줄 삭제", isPresented: Binding(
                 get: { scheduleToDelete != nil },
@@ -77,22 +82,34 @@ struct ContentView: View {
     
     private var scheduleListView: some View {
         ForEach(homeViewModel.filteredSchedules) { schedule in
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(schedule.name)
-                        .font(.headline)
-                    Text("\(schedule.durationSeconds / 60)분 집중")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+            Button {
+                if !schedule.isCompleted {
+                    focusManager.startFocus(on: schedule)
+                    showingTimer = true
                 }
-                Spacer()
-                if schedule.syncStatus == .pending {
-                    Image(systemName: "cloud.badge.plus")
-                        .foregroundColor(.orange)
-                        .font(.caption)
+            } label: {
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text(schedule.name)
+                            .font(.headline)
+                            .foregroundColor(schedule.isCompleted ? .secondary : .primary)
+                        Text("\(schedule.durationSeconds / 60)분 집중")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    if schedule.isCompleted {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                    } else if schedule.syncStatus == .pending {
+                        Image(systemName: "cloud.badge.plus")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                    }
                 }
+                .padding(.vertical, 4)
             }
-            .padding(.vertical, 4)
+            .buttonStyle(.plain)
             .contentShape(Rectangle())
             .contextMenu {
                 if !schedule.isCompleted {
