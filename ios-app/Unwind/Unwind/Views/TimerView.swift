@@ -57,6 +57,14 @@ struct TimerView: View {
                     dismiss()
                 }
         }
+        .alert("정말 포기하시겠습니까?", isPresented: $showingAbandonAlert) {
+            Button("계속 집중하기", role: .cancel) { }
+            Button("포기하기", role: .destructive) {
+                focusManager.abandonFocus()
+            }
+        } message: {
+            Text("이번 집중은 실패로 기록됩니다.")
+        }
     }
     
     private var progress: CGFloat {

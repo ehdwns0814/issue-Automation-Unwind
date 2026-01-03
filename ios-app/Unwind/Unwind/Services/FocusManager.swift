@@ -11,13 +11,26 @@ class FocusManager: ObservableObject {
     @Published var timeRemaining: Int = 0
     @Published var isFocusing: Bool = false
     @Published var showSuccessScreen: Bool = false
+    @Published var isAllInModeActive: Bool = false {
+        didSet {
+            UserDefaults.standard.set(isAllInModeActive, forKey: "isAllInModeActive")
+        }
+    }
     
     private var timer: AnyCancellable?
     private let deviceActivityCenter = DeviceActivityCenter()
     private let store = ManagedSettingsStore()
     private let sharedDefaults = UserDefaults(suiteName: "group.com.unwind.data")
     
-    private init() {}
+    private init() {
+        self.isAllInModeActive = UserDefaults.standard.bool(forKey: "isAllInModeActive")
+        
+        // 만약 앱 실행 시 올인 모드가 활성 상태라면 차단 재설정
+        if isAllInModeActive {
+            activateShield()
+            startAllInMonitoring()
+        }
+    }
     
     func startFocus(on schedule: Schedule) {
         self.showSuccessScreen = false
@@ -48,8 +61,25 @@ class FocusManager: ObservableObject {
         timer?.cancel()
         timer = nil
         
+        // 올인 모드가 아닐 때만 차단을 해제합니다.
+        if !isAllInModeActive {
+            deactivateShield()
+            stopMonitoring()
+        }
+    }
+    
+    /// 올인 모드를 시작합니다.
+    func startAllInMode() {
+        isAllInModeActive = true
+        activateShield()
+        startAllInMonitoring()
+    }
+    
+    /// 올인 모드를 중단하거나 완료했을 때 호출됩니다.
+    func stopAllInMode() {
+        isAllInModeActive = false
         deactivateShield()
-        stopMonitoring()
+        stopAllInMonitoring()
     }
     
     private func tick() {
@@ -126,5 +156,23 @@ class FocusManager: ObservableObject {
     private func stopMonitoring() {
         deviceActivityCenter.stopMonitoring([DeviceActivityName("com.unwind.focusSession")])
     }
+    
+    private func startAllInMonitoring() {
+        let name = DeviceActivityName("com.unwind.allInMode")
+        let activitySchedule = DeviceActivitySchedule(
+            intervalStart: DateComponents(hour: 0, minute: 0),
+            intervalEnd: DateComponents(hour: 23, minute: 59),
+            repeats: true
+        )
+        
+        do {
+            try deviceActivityCenter.startMonitoring(name, during: activitySchedule)
+        } catch {
+            print("Failed to start All-in monitoring: \(error)")
+        }
+    }
+    
+    private func stopAllInMonitoring() {
+        deviceActivityCenter.stopMonitoring([DeviceActivityName("com.unwind.allInMode")])
+    }
 }
-
