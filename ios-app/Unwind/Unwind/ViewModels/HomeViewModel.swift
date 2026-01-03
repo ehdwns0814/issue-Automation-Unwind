@@ -12,6 +12,7 @@ class HomeViewModel: ObservableObject {
         }
     }
     @Published var todayStatus: DailyStatus = .noPlan
+    @Published var currentStreak: Int = 0
     
     // 오늘 남은 스케줄이 있는지 확인
     var hasIncompleteSchedulesToday: Bool {
@@ -79,6 +80,14 @@ class HomeViewModel: ObservableObject {
                 return records[dateString]?.status ?? .noPlan
             }
             .assign(to: \.todayStatus, on: self)
+            .store(in: &cancellables)
+            
+        // 스트릭 계산 바인딩
+        repository.$dailyRecords
+            .map { records in
+                return StreakCalculator.calculateCurrentStreak(from: records)
+            }
+            .assign(to: \.currentStreak, on: self)
             .store(in: &cancellables)
     }
     
