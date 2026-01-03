@@ -59,6 +59,13 @@ struct ContentView: View {
             } message: {
                 Text("오늘 예정된 미완료 스케줄이 없습니다.")
             }
+            .alert("올인 모드 완료!", isPresented: $focusManager.showAllInCompletePopup) {
+                Button("축하합니다!") {
+                    focusManager.showAllInCompletePopup = false
+                }
+            } message: {
+                Text("오늘의 모든 스케줄을 완료하셨습니다.\n정말 고생 많으셨어요! 🎉")
+            }
             .alert("스케줄 삭제", isPresented: Binding(
                 get: { scheduleToDelete != nil },
                 set: { if !$0 { scheduleToDelete = nil } }

@@ -11,6 +11,7 @@ class FocusManager: ObservableObject {
     @Published var timeRemaining: Int = 0
     @Published var isFocusing: Bool = false
     @Published var showSuccessScreen: Bool = false
+    @Published var showAllInCompletePopup: Bool = false
     @Published var isAllInModeActive: Bool = false {
         didSet {
             UserDefaults.standard.set(isAllInModeActive, forKey: "isAllInModeActive")
