@@ -42,7 +42,7 @@ struct SettingsView: View {
                     HStack {
                         Text("버전")
                         Spacer()
-                        Text("v1.0.0")
+                        Text(AppInfoUtil.fullVersionString)
                             .foregroundColor(.secondary)
                     }
                 }
