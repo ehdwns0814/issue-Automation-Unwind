@@ -47,9 +47,15 @@ struct TimerView: View {
         }
         .padding()
         .onReceive(focusManager.$isFocusing) { isFocusing in
-            if !isFocusing {
+            if !isFocusing && !focusManager.showSuccessScreen {
                 dismiss()
             }
+        }
+        .fullScreenCover(isPresented: $focusManager.showSuccessScreen) {
+            SuccessView()
+                .onDisappear {
+                    dismiss()
+                }
         }
     }
     

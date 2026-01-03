@@ -10,6 +10,7 @@ class FocusManager: ObservableObject {
     @Published var currentSchedule: Schedule?
     @Published var timeRemaining: Int = 0
     @Published var isFocusing: Bool = false
+    @Published var showSuccessScreen: Bool = false
     
     private var timer: AnyCancellable?
     private let deviceActivityCenter = DeviceActivityCenter()
@@ -19,6 +20,7 @@ class FocusManager: ObservableObject {
     private init() {}
     
     func startFocus(on schedule: Schedule) {
+        self.showSuccessScreen = false
         self.currentSchedule = schedule
         self.timeRemaining = schedule.durationSeconds
         self.isFocusing = true
@@ -62,11 +64,19 @@ class FocusManager: ObservableObject {
     
     private func completeFocus() {
         guard var schedule = currentSchedule else { return }
+        
+        // 1. 상태 업데이트 (성공 기록)
+        schedule.status = .completed
         schedule.isCompleted = true
         schedule.updatedAt = Date()
+        schedule.completedAt = Date()
         ScheduleRepository.shared.updateSchedule(schedule)
         
+        // 2. 집중 종료 처리
         stopFocus()
+        
+        // 3. 성공 화면 표시 신호 발생
+        showSuccessScreen = true
     }
     
     private func activateShield() {
