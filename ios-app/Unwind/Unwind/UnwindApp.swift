@@ -1,10 +1,3 @@
-//
-//  UnwindApp.swift
-//  Unwind
-//
-//  Created by 동준 on 1/3/26.
-//
-
 import SwiftUI
 
 @main
@@ -18,9 +11,14 @@ struct UnwindApp: App {
                 .fullScreenCover(isPresented: $penaltyManager.isPenaltyActive) {
                     PenaltyView()
                 }
+                .onAppear {
+                    // 0.5초 지연을 주어 초기 UI 렌더링과 시스템 부하를 분산합니다.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        ScreentimeManager.shared.updateAuthorizationStatus()
+                    }
+                }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
-                        // 앱이 포그라운드로 올라올 때마다 권한 상태를 체크합니다.
                         penaltyManager.checkAuthorizationStatus()
                         ScreentimeManager.shared.updateAuthorizationStatus()
                     }

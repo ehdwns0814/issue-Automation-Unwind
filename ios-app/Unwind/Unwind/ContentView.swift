@@ -8,16 +8,33 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var repository = ScheduleRepository.shared
-    @StateObject private var homeViewModel = HomeViewModel()
-    @StateObject private var focusManager = FocusManager.shared
-    @StateObject private var screentimeManager = ScreentimeManager.shared
+    @StateObject private var repository: ScheduleRepository
+    @StateObject private var homeViewModel: HomeViewModel
+    @StateObject private var focusManager: FocusManager
+    @StateObject private var screentimeManager: ScreentimeManager
+    
     @State private var showingAddSheet = false
     @State private var editingSchedule: Schedule?
     @State private var scheduleToDelete: Schedule?
     @State private var showingTimer = false
     @State private var showingAllInAlert = false
     @State private var showingAllInAbandonAlert = false
+    @State private var showingPermissionDenied = false
+    
+    init() {
+        _repository = StateObject(wrappedValue: {
+            return ScheduleRepository.shared
+        }())
+        _homeViewModel = StateObject(wrappedValue: {
+            return HomeViewModel()
+        }())
+        _focusManager = StateObject(wrappedValue: {
+            return FocusManager.shared
+        }())
+        _screentimeManager = StateObject(wrappedValue: {
+            return ScreentimeManager.shared
+        }())
+    }
     
     var body: some View {
         NavigationStack {
@@ -104,8 +121,17 @@ struct ContentView: View {
             } message: {
                 Text("이 스케줄을 정말 삭제하시겠습니까?")
             }
-            .fullScreenCover(isPresented: .constant(screentimeManager.authorizationStatus == .denied)) {
+            .fullScreenCover(isPresented: $showingPermissionDenied) {
                 PermissionRequestView()
+            }
+            .onReceive(screentimeManager.$authorizationStatus) { status in
+                // 시뮬레이터 환경에서 초기 로딩 시 화이트 스크린 방지를 위해 약간의 딜레이를 주거나 
+                // 명시적으로 denied 일 때만 트리거합니다.
+                if status == .denied {
+                    showingPermissionDenied = true
+                } else {
+                    showingPermissionDenied = false
+                }
             }
         }
     }
@@ -159,7 +185,7 @@ struct ContentView: View {
                         }
                         Spacer()
                         if !schedule.isCompleted && schedule.syncStatus == .pending {
-                            Image(systemName: "cloud.badge.plus")
+                            Image(systemName: "icloud.and.arrow.up")
                                 .foregroundColor(.orange)
                                 .font(.caption)
                         }
